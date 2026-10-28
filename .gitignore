@@ -1,0 +1,10 @@
+bin/
+obj/
+.vs/
+.claude/
+*.user
+*.suo
+artifacts/
+tools/oracle/.venv/
+
+.ralfai/

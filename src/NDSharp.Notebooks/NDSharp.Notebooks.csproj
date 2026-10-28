@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <TargetFramework>net11.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="NDSharp.Notebooks/**" />
+    <ProjectReference Include="../NDSharp/NDSharp.csproj" />
+    <ProjectReference Include="../NDSharp.Frame/NDSharp.Frame.csproj" />
+    <ProjectReference Include="../NDSharp.Plot/NDSharp.Plot.csproj" />
+    <ProjectReference Include="../NDSharp.Image/NDSharp.Image.csproj" />
+    <ProjectReference Include="../NDSharp.Wavelets/NDSharp.Wavelets.csproj" />
+  </ItemGroup>
+</Project>

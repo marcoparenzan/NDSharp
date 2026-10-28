@@ -1,0 +1,14 @@
+<Solution>
+  <Project Path="NDSharp/NDSharp.csproj" />
+  <Project Path="NDSharp.Tests/NDSharp.Tests.csproj" />
+  <Project Path="NDSharp.Plot/NDSharp.Plot.csproj" />
+  <Project Path="NDSharp.Notebooks.Tests/NDSharp.Notebooks.Tests.csproj" />
+  <Project Path="NDSharp.Notebooks/NDSharp.Notebooks.csproj" />
+  <Project Path="NDSharp.Plot.Tests/NDSharp.Plot.Tests.csproj" />
+  <Project Path="NDSharp.Frame/NDSharp.Frame.csproj" />
+  <Project Path="NDSharp.Frame.Tests/NDSharp.Frame.Tests.csproj" />
+  <Project Path="NDSharp.Image/NDSharp.Image.csproj" />
+  <Project Path="NDSharp.Image.Tests/NDSharp.Image.Tests.csproj" />
+  <Project Path="NDSharp.Wavelets/NDSharp.Wavelets.csproj" />
+</Solution>
+
