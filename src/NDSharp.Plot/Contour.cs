@@ -60,7 +60,9 @@ public sealed class ContourArtist : Artist, IMappable
     {
         var ax = c.Axes;
         bool mono = Colors is { Length: 1 };
-        double zlo = Z.Where(double.IsFinite).Min(), zhi = Z.Where(double.IsFinite).Max();
+        var finite = Z.Where(double.IsFinite).ToArray();
+        if (finite.Length == 0) return; // nothing to trace; the filled path likewise paints nothing for an all-missing field
+        double zlo = finite.Min(), zhi = finite.Max();
         for (int li = 0; li < Levels.Length; li++)
         {
             double lv = Levels[li];
