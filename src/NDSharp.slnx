@@ -8,6 +8,8 @@
   <Project Path="NDSharp.Frame/NDSharp.Frame.csproj" />
   <Project Path="NDSharp.Frame.Tests/NDSharp.Frame.Tests.csproj" />
   <Project Path="NDSharp.Image/NDSharp.Image.csproj" />
+  <Project Path="NDSharp.Cli/NDSharp.Cli.csproj" />
+  <Project Path="NDSharp.Cli.Tests/NDSharp.Cli.Tests.csproj" />
   <Project Path="NDSharp.Image.Tests/NDSharp.Image.Tests.csproj" />
   <Project Path="NDSharp.Wavelets/NDSharp.Wavelets.csproj" />
 </Solution>

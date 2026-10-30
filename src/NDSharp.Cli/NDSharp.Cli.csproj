@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net11.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>ndsharp</ToolCommandName>
+    <PackageId>NDSharp.Cli</PackageId>
+    <Version>0.1.0-net11-preview.1</Version>
+    <Authors>Marco Parenzan</Authors>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <Description>ndsharp — command-line tool for NDSharp: describe, show and convert tabular data (CSV, JSON) without a Python runtime.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\NDSharp\NDSharp.csproj" />
+    <ProjectReference Include="..\NDSharp.Frame\NDSharp.Frame.csproj" />
+  </ItemGroup>
+</Project>
