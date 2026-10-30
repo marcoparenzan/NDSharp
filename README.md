@@ -1,8 +1,14 @@
 # NDSharp
 
+> **Part of [ScienceSharp](../ScienceSharp)** — the Science suite. Targets **.NET 11**. Status: preview, not published. License: MIT.
+> **Form:** NuGet libraries (`NDSharp`, `NDSharp.Frame`, `NDSharp.Plot`, `NDSharp.Image`, `NDSharp.Wavelets`). Global tool `ndsharp` (describe, head, info, convert CSV and JSON).
+
+| [README](README.md) | [USAGE](USAGE.md) (install first) | [ARCHITECTURE](ARCHITECTURE.md) | [ROADMAP](ROADMAP.md) | [OPENPOINTS](OPENPOINTS.md) |
+| --- | --- | --- | --- | --- |
+
 NDSharp is a native .NET n-dimensional array library with NumPy-style semantics, accompanied by libraries for tabular data, plotting, image processing, and wavelets. It requires **no Python runtime**. The libraries were extracted from PySharp so interpreters and other .NET applications can share one numerical implementation.
 
-This repository contains libraries, not a standalone application or command-line tool. All projects target **.NET 10**.
+This repository contains libraries and one command-line tool, `ndsharp`. All projects target **.NET 11**.
 
 ## Libraries
 
@@ -24,10 +30,10 @@ These are C# APIs inspired by the corresponding Python libraries, not a promise 
 
 ## Quick start
 
-Install the .NET 10 SDK, then create a consumer project:
+Install the .NET 11 SDK, then create a consumer project:
 
 ```powershell
-dotnet new console -n ArrayDemo --framework net10.0
+dotnet new console -n ArrayDemo --framework net11.0
 cd ArrayDemo
 dotnet add package NDSharp
 ```
@@ -62,3 +68,7 @@ Python is only needed to regenerate optional oracle data; the generated files ar
 ## License
 
 The project uses the [MIT license](LICENSE). Plotting bundles DejaVu Sans fonts; their separate license is in [src/NDSharp.Plot/Fonts/LICENSE_DEJAVU](src/NDSharp.Plot/Fonts/LICENSE_DEJAVU).
+
+## AI assistance
+
+This code was developed with the assistance of generative AI tools. The matplotlib-derived parts are credited in [src/NDSharp.Plot/THIRD-PARTY-NOTICES.md](src/NDSharp.Plot/THIRD-PARTY-NOTICES.md).

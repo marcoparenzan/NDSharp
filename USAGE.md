@@ -1,5 +1,35 @@
 # Usage
 
+## Installation
+
+NDSharp is a set of **libraries** plus the global tool **`ndsharp`**. Requires the **.NET 11 SDK**.
+
+```powershell
+# from the local feed (nothing is on nuget.org yet)
+dotnet add package NDSharp        --source D:\Dev\NuGetLocalFeed --prerelease
+dotnet add package NDSharp.Frame  --source D:\Dev\NuGetLocalFeed --prerelease   # DataFrame
+dotnet add package NDSharp.Plot   --source D:\Dev\NuGetLocalFeed --prerelease   # plotting (SkiaSharp natives)
+# also: NDSharp.Image (OpenCV), NDSharp.Wavelets
+```
+
+### The `ndsharp` tool
+
+```powershell
+dotnet tool install --global NDSharp.Cli --add-source D:\Dev\NuGetLocalFeed --prerelease
+ndsharp info data.csv               # columns, types, non-null counts
+ndsharp head data.csv -n 10         # first rows
+ndsharp describe data.csv           # count, mean, std, quartiles per column
+ndsharp convert data.csv out.json   # or out.csv
+ndsharp selftest
+```
+
+Reads CSV (`--sep` for another separator); writes JSON records or CSV. Exit codes: 0 ok, 1 unknown command, 2 usage or input
+error. Build and test from source: `dotnet test src/NDSharp.Cli.Tests`.
+
+The whole suite, including these packages, can be downloaded with `D:\Dev\Science\ScienceSharp\Install-Suite.ps1 -Download`.
+Notebooks use the JupyterSharp VS Code extension (see the suite [USAGE](../ScienceSharp/USAGE.md)). The sections below describe
+the build from source, the libraries and the validation history.
+
 ## Current complete Science baseline
 
 After physical filled sampling and band lookup delegation, Science gate --no-images passed31/31: D:\Dev\BuildArtifacts\ecosystem-validation\20261028-215324. Includes targeted/shared tests, package/source kernels, real notebook line/fill outputs and the rest of ecosystem checks. No new review image/screenshot files; notebook PNG outputs remain embedded.
@@ -32,11 +62,11 @@ From MathemaSharp, `dotnet run --file ops/InventoryNDSharpPlot.cs` records sourc
 
 ## Requirements and installation
 
-Use the .NET 10 SDK for development and a compatible .NET runtime for library consumers. Commands below run from the repository root unless stated otherwise.
+Use the .NET 11 SDK for development and a compatible .NET runtime for library consumers. Commands below run from the repository root unless stated otherwise.
 
 ### Reference source projects
 
-In your own .NET 10 project, reference only the libraries you need (adjust paths to your checkout):
+In your own .NET 11 project, reference only the libraries you need (adjust paths to your checkout):
 
 ```powershell
 dotnet add reference ../NDSharp/src/NDSharp/NDSharp.csproj
@@ -188,7 +218,7 @@ For generated oracle data, consult [ARCHITECTURE.md](ARCHITECTURE.md). Normal bu
 - **Native library load failure:** check OS/architecture compatibility and OpenCV or SkiaSharp native assets. Image runtime packaging is currently Windows-oriented.
 - **Unexpected data changes:** a slice may share storage; make an explicit copy before mutation.
 - **Unexpected dtype or missing result:** inspect dtype promotion, broadcasting shapes, and Frame label alignment.
-- **Preview SDK notice:** the repository does not pin an SDK with `global.json`; an installed preview SDK may be selected even though projects target `net10.0`.
+- **Preview SDK notice:** the repository does not pin an SDK with `global.json`; an installed preview SDK may be selected even though projects target `net11.0`.
 
 ## C# Jupyter notebooks
 
@@ -196,7 +226,7 @@ The [notebooks](src/notebooks) are standard `.ipynb` files using the **.NET Inte
 
 ### Setup
 
-**VS Code:** install Microsoft's **Polyglot Notebooks** extension and the .NET 10 SDK. Open an `.ipynb`, select its .NET Interactive C# kernel, and Run All. The extension manages the interactive host; select a host capable of loading .NET 10 assemblies. A C# kernel running on an older runtime cannot load these libraries.
+**VS Code:** install Microsoft's **Polyglot Notebooks** extension and the .NET 11 SDK. Open an `.ipynb`, select its .NET Interactive C# kernel, and Run All. The extension manages the interactive host; select a host capable of loading .NET 11 assemblies. A C# kernel running on an older runtime cannot load these libraries.
 
 **JupyterLab:** install JupyterLab using your preferred Python environment (Python is only the notebook UI, not the numerical runtime), then install/register .NET Interactive:
 
