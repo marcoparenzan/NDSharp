@@ -34,7 +34,7 @@ foreach (var (sample, i) in samples.Select((s, i) => (s, i)))
     object Code(string text) => new { cell_type = "code", execution_count = (int?)null, metadata = new { dotnet_interactive = new { language = "csharp" }, polyglot_notebook = new { kernelName = "csharp" } }, outputs = Array.Empty<object>(), source = new[] { text } };
     var notebook = new
     {
-        cells = new[] { Markdown($"# {sample.Title}\n\n{sample.Lesson}\n\nRun cells top to bottom with the .NET Interactive C# kernel. See ../../USAGE.md for package-feed setup."), Code("#r \"nuget: NDSharp, 2.5.0\"\n#r \"nuget: NDSharp.Frame, 2.5.0\"\n#r \"nuget: NDSharp.Plot, 2.5.0\"\n#r \"nuget: NDSharp.Image, 2.5.0\"\n#r \"nuget: NDSharp.Wavelets, 2.5.0\"\n" + imports), Code(sample.Code), Markdown("## Try it\n\nChange the input size or values and rerun the example. Predict the new shape or result first. Restart the kernel and Run All to verify that the notebook is self-contained.") },
+        cells = new[] { Markdown($"# {sample.Title}\n\n{sample.Lesson}\n\nRun cells top to bottom with the .NET Interactive C# kernel. See ../../USAGE.md for package-feed setup."), Code($"#r \"nuget: NDSharp, {PackageVersions.NDSharp}\"\n#r \"nuget: NDSharp.Frame, {PackageVersions.Frame}\"\n#r \"nuget: NDSharp.Plot, {PackageVersions.Plot}\"\n#r \"nuget: NDSharp.Image, {PackageVersions.Image}\"\n#r \"nuget: NDSharp.Wavelets, {PackageVersions.Wavelets}\"\n" + imports), Code(sample.Code), Markdown("## Try it\n\nChange the input size or values and rerun the example. Predict the new shape or result first. Restart the kernel and Run All to verify that the notebook is self-contained.") },
         metadata = new { kernelspec = new { display_name = ".NET (C#)", language = "C#", name = ".net-csharp" }, language_info = new { name = "C#" }, polyglot_notebook = new { kernelInfo = new { defaultKernelName = "csharp", items = new[] { new { name = "csharp", languageName = "C#", aliases = new[] { "c#", "C#" } } } } } },
         nbformat = 4, nbformat_minor = 4
     };
@@ -44,3 +44,14 @@ foreach (var (sample, i) in samples.Select((s, i) => (s, i)))
 validation.AppendLine("}");
 File.WriteAllText(Path.Combine(root.FullName, "src", "NDSharp.Notebooks", "Validation.g.cs"), validation.ToString());
 Console.WriteLine($"Generated {samples.Length} notebooks and their compiled validation companion.");
+
+// Package versions the notebooks restore with #r "nuget: ...". They come from the local feed (D:\Dev\NuGetLocalFeed): no NDSharp package is on
+// nuget.org. Move them when the feed moves on, then regenerate (see USAGE.md) and run the gate step ndsharp-notebooks.
+static class PackageVersions
+{
+    public const string NDSharp = "2.8.1-net11-preview.1";
+    public const string Frame = "2.5.1-net11-preview.1";
+    public const string Plot = "2.6.3-net11-preview.2";
+    public const string Image = "2.5.1-net11-preview.1";
+    public const string Wavelets = "2.5.1-net11-preview.1";
+}
