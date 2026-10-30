@@ -1,7 +1,7 @@
 # NDSharp — Roadmap
 
 NDSharp had no roadmap of its own; its plan lived in the suite roadmap. This is the project view. The suite plan is
-[../ScienceSharp/ROADMAP.md](../ScienceSharp/ROADMAP.md); the older consolidation plan is [../ROADMAP.md](../ROADMAP.md).
+[../ScienceSharp/ROADMAP.md](../ScienceSharp/ROADMAP.md); the older consolidation plan is [../ScienceSharp/docs/consolidation/ROADMAP.md](../ScienceSharp/docs/consolidation/ROADMAP.md).
 
 ## State (2026-10-30)
 
