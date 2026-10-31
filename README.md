@@ -17,6 +17,13 @@ NDSharp is a native .NET n-dimensional array library with NumPy-style semantics,
 
 This repository contains libraries and one command-line tool, `ndsharp`. All projects target **.NET 11**.
 
+## Typed array views (source branch)
+
+`ArrayView<T>` provides zero-copy typed storage with snapshot shape/stride metadata.
+`NDArray.AsArrayView<T>()` and `NDArray.FromArrayView(view, dtype)` preserve storage,
+strides and offset. Language adapters are not implemented yet; this is only the
+NDSharp portion of language-common-core step 0. No package has been published.
+
 ## Libraries
 
 | Package | Purpose | Main entry points |

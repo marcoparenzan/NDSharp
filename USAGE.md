@@ -1,5 +1,15 @@
 # Usage
 
+## Typed strided views (source branch)
+
+Use a project reference to the source checkout; no new package is available for
+this API. Call `array.AsArrayView<double>()` for exact double storage, then
+`NDArray.FromArrayView(view, array.DType)` to share it back without copying values.
+`view[0, 1] = 3.0` writes into the original buffer. Metadata is snapshotted, strides
+are in elements, and negative/zero strides are supported. Indices are zero-based
+and must be nonnegative. This does not yet provide MatSharp/PySharp adapters.
+
+
 ## Installation
 
 NDSharp is a set of **libraries** plus the global tool **`ndsharp`**. Requires the **.NET 11 SDK**.

@@ -4,6 +4,7 @@ Suite-wide points are in [../ScienceSharp/OPENPOINTS.md](../ScienceSharp/OPENPOI
 
 | # | Point | Status |
 | --- | --- | --- |
+| N-13 | Language-common-core step 0: ArrayView and NDArray adapters implemented on source branch; MatSharp/PySharp adapters and complete step gate pending. Base/Tag identity is not transferred; complex layout conversion is not provided. | partial |
 | N-1 | **Perimeter of NDSharp** (suite R03): which geometries belong to the core and which Figure/Axes/Skia capabilities stay in the consuming backend. | open |
 | N-2 | **Other chart categories** (R14): grouped/stacked bars, histograms, advanced quiver, layout/tick/font, artists, 3D — keep, adapt to PlotSharp, or exclude explicitly. | open |
 | N-3 | Palette, alpha and the native raster/Skia renderer of NDSharp.Plot are still local to NDSharp; only linear contours, the physical sampler and band selection come from PlotSharp. | known |

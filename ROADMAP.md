@@ -10,6 +10,13 @@ NDSharp had no roadmap of its own; its plan lived in the suite roadmap. This is 
 - Gate: green. Contour notebook runs in JupyterSharp through the PySharp kernel.
 - MIT; `THIRD-PARTY-NOTICES.md` packed with `NDSharp.Plot`.
 
+## Language common core — step 0 (partial, source branch)
+
+Typed `ArrayView<T>` and zero-copy NDArray round-trip adapters are implemented.
+Metadata is snapshotted and reachable storage validated. MatSharp/PySharp adapters,
+their baseline suites and the complete ecosystem gate remain pending. No package
+was produced or published; source version is 2.8.1-net11-preview.2.
+
 ## Next
 
 1. **Define the perimeter** (R03): what stays in NDSharp.Plot and what moves to PlotSharp.

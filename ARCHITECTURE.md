@@ -47,6 +47,17 @@ artifacts/                local NuGet package output
 
 Documentation lives at the repository root. There is no standalone executable or deployment pipeline in the current tree. Each companion library references `NDSharp`; the core does not reference the companions.
 
+## Typed view contract (language-common-core step 0, partial)
+
+`ArrayView<T>` is a BCL-only generic view in the NDSharp core. It copies shape and
+stride metadata, not elements. Signed and broadcast strides are validated against
+buffer bounds; rank-zero means a scalar, any zero dimension means an empty view.
+The ref indexer is zero-based with no negative-index convention. Shared writes
+require external synchronization. Numeric values are never converted or normalized.
+NDArray adapters require exact CLR storage types and explicit dtype on import,
+preserving temporal and complex dtype distinctions. Import shares the buffer but
+does not preserve NDArray Base/Tag wrapper identity. This is not a language adapter.
+
 ## Array model
 
 `NDArray` holds a typed CLR array buffer together with a dtype, shape, element strides, and offset. Strides are expressed in **elements**, not bytes. This allows slices and other views to reuse backing storage without allocating a full copy. Arrays expose rank, size, and contiguity information.
