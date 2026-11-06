@@ -16,7 +16,7 @@ public class OrderStatisticsKernelTests
     [Theory, MemberData(nameof(DtypeCases))]
     public void MedianMatchesTheEngine(DType dtype)
     {
-        bool isFloat = dtype is DType.Float32 or DType.Float64;
+        bool isFloat = dtype is DType.Float16 or DType.Float32 or DType.Float64;
         foreach (var specials in isFloat ? new[] { false, true } : [false])
         {
             var a = KernelPathTests.Make(dtype, specials, 4, 5, 6);
@@ -32,7 +32,7 @@ public class OrderStatisticsKernelTests
     [Theory, MemberData(nameof(DtypeCases))]
     public void LinearPercentileMatchesTheEngine(DType dtype)
     {
-        bool isFloat = dtype is DType.Float32 or DType.Float64;
+        bool isFloat = dtype is DType.Float16 or DType.Float32 or DType.Float64;
         foreach (var specials in isFloat ? new[] { false, true } : [false])
         {
             var a = KernelPathTests.Make(dtype, specials, 4, 5, 6);

@@ -9,7 +9,7 @@ namespace NDSharp.Tests;
 /// (kernel path off) are the oracle: same dtype, shape and bits.</summary>
 public class CalculusKernelTests
 {
-    public static IEnumerable<object[]> DtypeCases() => new[] { DType.Int32, DType.UInt8, DType.Float32, DType.Float64, DType.Bool }.Select(d => new object[] { d });
+    public static IEnumerable<object[]> DtypeCases() => new[] { DType.Int32, DType.UInt8, DType.Float16, DType.Float32, DType.Float64, DType.Bool }.Select(d => new object[] { d });
 
     static NDArray Positions(DType dtype, int n, bool uniform)
     {
@@ -22,7 +22,7 @@ public class CalculusKernelTests
     [Theory, MemberData(nameof(DtypeCases))]
     public void GradientMatchesTheEngine(DType dtype)
     {
-        bool isFloat = dtype is DType.Float32 or DType.Float64;
+        bool isFloat = dtype is DType.Float16 or DType.Float32 or DType.Float64;
         var f = KernelPathTests.Make(dtype, isFloat, 4, 5, 6);
         foreach (var spacing in new double[]?[] { null, [0.5], [0.1, 2.0, 0.3] })
         foreach (var axes in new int[]?[] { null, [0], [2], [1, 2], [-1] })
@@ -71,7 +71,7 @@ public class CalculusKernelTests
     [Theory, MemberData(nameof(DtypeCases))]
     public void TrapezoidMatchesTheGeneralFormula(DType dtype)
     {
-        bool isFloat = dtype is DType.Float32 or DType.Float64;
+        bool isFloat = dtype is DType.Float16 or DType.Float32 or DType.Float64;
         var y = KernelPathTests.Make(dtype, isFloat, 4, 5, 6);
         var yf = isFloat ? dtype : DType.Float64;
         foreach (var axis in new[] { 0, 1, 2, -1 })

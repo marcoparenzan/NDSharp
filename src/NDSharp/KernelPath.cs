@@ -9,10 +9,11 @@ using MathemaSharp.Kernels;
 namespace NDSharp;
 
 /// <summary>Runs <c>sum prod max min mean var std cumsum cumprod</c> on the lane kernels of <c>MathemaSharp.Kernels</c>, for every real dtype
-/// except float16 (integers, float32, float64), over any axes, any layout and empty arrays, with numpy's rules: NaN propagates, sums are
-/// pairwise when the reduced elements are adjacent in memory (and plain from the first element otherwise), variance is two-pass.
+/// (integers, float16, float32, float64), over any axes, any layout and empty arrays, with numpy's rules: NaN propagates, sums are
+/// pairwise when the reduced elements are adjacent in memory (and plain from the first element otherwise), variance is two-pass. Float16 is computed in
+/// float16 arithmetic, as the general engine did (NumPy accumulates float16 sums in float32: not verified here, open).
 /// A C-contiguous array whose reduced axes are adjacent is read in place; any other layout is first gathered into a contiguous copy with the
-/// reduced axes last. Float16, complex and the temporal dtypes are left to the general engine.</summary>
+/// reduced axes last. Complex and the temporal dtypes are left to the general engine.</summary>
 public static class KernelPath
 {
     static readonly AsyncLocal<Scope?> current = new();
@@ -47,11 +48,15 @@ public static class KernelPath
     /// <summary>Tries the kernels. <paramref name="a"/> is already cast to the dtype of the computation; <paramref name="axes"/> is the normalised,
     /// sorted list of reduced axes (all of them when the caller passed none).</summary>
     internal static bool TryReduce(Op op, NDArray a, int[] axes, bool keepdims, int ddof, out NDArray result)
+        => TryReduce(op, a, axes, keepdims, ddof, NanPolicy.Propagate, out result);
+
+    /// <summary>As above with a NaN policy: <see cref="NanPolicy.Omit"/> serves the <c>nan*</c> functions, which have no general-engine implementation and so ignore <see cref="Begin"/>.</summary>
+    internal static bool TryReduce(Op op, NDArray a, int[] axes, bool keepdims, int ddof, NanPolicy nan, out NDArray result)
     {
         result = null!;
         var scope = current.Value;
-        if (scope is { Enabled: false }) return false;
-        NDArray? r = op is Op.Mean or Op.Var ? ReduceFloat(op, a, axes, keepdims, ddof) : ReduceNumber(op, a, axes, keepdims);
+        if (scope is { Enabled: false } && nan == NanPolicy.Propagate) return false;
+        NDArray? r = op is Op.Mean or Op.Var ? ReduceFloat(op, a, axes, keepdims, ddof, nan) : ReduceNumber(op, a, axes, keepdims, nan);
         if (r is null) return false;
         scope?.Count();
         result = r;
@@ -60,22 +65,26 @@ public static class KernelPath
 
     /// <summary>Tries the kernels for <c>cumsum</c> and <c>cumprod</c>; <paramref name="a"/> is already cast; <paramref name="axis"/> is normalised, or null for the flattened array.</summary>
     internal static bool TryScan(Op op, NDArray a, int? axis, out NDArray result)
+        => TryScan(op, a, axis, NanPolicy.Propagate, out result);
+
+    internal static bool TryScan(Op op, NDArray a, int? axis, NanPolicy nan, out NDArray result)
     {
         result = null!;
         var scope = current.Value;
-        if (scope is { Enabled: false }) return false;
+        if (scope is { Enabled: false } && nan == NanPolicy.Propagate) return false;
         NDArray? r = a.DType switch
         {
-            DType.Int8 => Scan<sbyte>(op, a, axis),
-            DType.UInt8 => Scan<byte>(op, a, axis),
-            DType.Int16 => Scan<short>(op, a, axis),
-            DType.UInt16 => Scan<ushort>(op, a, axis),
-            DType.Int32 => Scan<int>(op, a, axis),
-            DType.UInt32 => Scan<uint>(op, a, axis),
-            DType.Int64 => Scan<long>(op, a, axis),
-            DType.UInt64 => Scan<ulong>(op, a, axis),
-            DType.Float32 => Scan<float>(op, a, axis),
-            DType.Float64 => Scan<double>(op, a, axis),
+            DType.Int8 => Scan<sbyte>(op, a, axis, nan),
+            DType.UInt8 => Scan<byte>(op, a, axis, nan),
+            DType.Int16 => Scan<short>(op, a, axis, nan),
+            DType.UInt16 => Scan<ushort>(op, a, axis, nan),
+            DType.Int32 => Scan<int>(op, a, axis, nan),
+            DType.UInt32 => Scan<uint>(op, a, axis, nan),
+            DType.Int64 => Scan<long>(op, a, axis, nan),
+            DType.UInt64 => Scan<ulong>(op, a, axis, nan),
+            DType.Float16 => Scan<Half>(op, a, axis, nan),
+            DType.Float32 => Scan<float>(op, a, axis, nan),
+            DType.Float64 => Scan<double>(op, a, axis, nan),
             _ => null,
         };
         if (r is null) return false;
@@ -84,25 +93,27 @@ public static class KernelPath
         return true;
     }
 
-    static NDArray? ReduceNumber(Op op, NDArray a, int[] axes, bool keepdims) => a.DType switch
+    static NDArray? ReduceNumber(Op op, NDArray a, int[] axes, bool keepdims, NanPolicy nan) => a.DType switch
     {
-        DType.Int8 => Reduce<sbyte>(op, a, axes, keepdims),
-        DType.UInt8 => Reduce<byte>(op, a, axes, keepdims),
-        DType.Int16 => Reduce<short>(op, a, axes, keepdims),
-        DType.UInt16 => Reduce<ushort>(op, a, axes, keepdims),
-        DType.Int32 => Reduce<int>(op, a, axes, keepdims),
-        DType.UInt32 => Reduce<uint>(op, a, axes, keepdims),
-        DType.Int64 => Reduce<long>(op, a, axes, keepdims),
-        DType.UInt64 => Reduce<ulong>(op, a, axes, keepdims),
-        DType.Float32 => Reduce<float>(op, a, axes, keepdims),
-        DType.Float64 => Reduce<double>(op, a, axes, keepdims),
+        DType.Int8 => Reduce<sbyte>(op, a, axes, keepdims, nan),
+        DType.UInt8 => Reduce<byte>(op, a, axes, keepdims, nan),
+        DType.Int16 => Reduce<short>(op, a, axes, keepdims, nan),
+        DType.UInt16 => Reduce<ushort>(op, a, axes, keepdims, nan),
+        DType.Int32 => Reduce<int>(op, a, axes, keepdims, nan),
+        DType.UInt32 => Reduce<uint>(op, a, axes, keepdims, nan),
+        DType.Int64 => Reduce<long>(op, a, axes, keepdims, nan),
+        DType.UInt64 => Reduce<ulong>(op, a, axes, keepdims, nan),
+        DType.Float16 => Reduce<Half>(op, a, axes, keepdims, nan),
+        DType.Float32 => Reduce<float>(op, a, axes, keepdims, nan),
+        DType.Float64 => Reduce<double>(op, a, axes, keepdims, nan),
         _ => null,
     };
 
-    static NDArray? ReduceFloat(Op op, NDArray a, int[] axes, bool keepdims, int ddof) => a.DType switch
+    static NDArray? ReduceFloat(Op op, NDArray a, int[] axes, bool keepdims, int ddof, NanPolicy nan) => a.DType switch
     {
-        DType.Float32 => MeanOrVar<float>(op, a, axes, keepdims, ddof),
-        DType.Float64 => MeanOrVar<double>(op, a, axes, keepdims, ddof),
+        DType.Float16 => MeanOrVar<Half>(op, a, axes, keepdims, ddof, nan),
+        DType.Float32 => MeanOrVar<float>(op, a, axes, keepdims, ddof, nan),
+        DType.Float64 => MeanOrVar<double>(op, a, axes, keepdims, ddof, nan),
         _ => null,
     };
 
@@ -194,38 +205,39 @@ public static class KernelPath
 
     // ------------------------------------------------------------------ reductions
 
-    static NDArray Reduce<T>(Op op, NDArray a, int[] axes, bool keepdims) where T : unmanaged, INumber<T>
+    static NDArray Reduce<T>(Op op, NDArray a, int[] axes, bool keepdims, NanPolicy nan) where T : unmanaged, INumber<T>
     {
         var buffer = Prepare<T>(a, axes, out int offset, out var lane, out var method, out _);
         var src = Window(buffer, offset, lane);
         var values = new T[lane.Count];
         switch (op)
         {
-            case Op.Sum: Reductions.Sum<T>(src, lane, values, NanPolicy.Propagate, method); break;
-            case Op.Prod: Reductions.Product<T>(src, lane, values); break;
+            case Op.Sum: Reductions.Sum<T>(src, lane, values, nan, method); break;
+            case Op.Prod: Reductions.Product<T>(src, lane, values, nan); break;
             case Op.Max:
             case Op.Min:
                 if (lane.Count > 0 && lane.Length == 0)
                     throw new NDValueException($"zero-size array to reduction operation {(op == Op.Max ? "maximum" : "minimum")} which has no identity");
-                if (op == Op.Max) Reductions.Max<T>(src, lane, values, Span<int>.Empty, NanPolicy.Propagate);
-                else Reductions.Min<T>(src, lane, values, Span<int>.Empty, NanPolicy.Propagate);
+                if (op == Op.Max) Reductions.Max<T>(src, lane, values, Span<int>.Empty, nan);
+                else Reductions.Min<T>(src, lane, values, Span<int>.Empty, nan);
                 break;
             default: throw new InvalidOperationException(op.ToString());
         }
         return new NDArray(a.DType, values, Red.OutShape(a.Shape, axes, keepdims));
     }
 
-    static NDArray MeanOrVar<T>(Op op, NDArray a, int[] axes, bool keepdims, int ddof) where T : unmanaged, IFloatingPointIeee754<T>
+    static NDArray MeanOrVar<T>(Op op, NDArray a, int[] axes, bool keepdims, int ddof, NanPolicy nan) where T : unmanaged, IFloatingPointIeee754<T>
     {
         var buffer = Prepare<T>(a, axes, out int offset, out var lane, out var method, out var deviationMethod);
         var src = Window(buffer, offset, lane);
         var values = new T[lane.Count];
-        if (op == Op.Mean) Reductions.Mean<T>(src, lane, values, NanPolicy.Propagate, method);
+        if (op == Op.Mean) Reductions.Mean<T>(src, lane, values, nan, method);
         else
         {
             // numpy divides by max(n - ddof, 0): a positive sum of squares over zero gives +inf, zero or NaN gives NaN (the kernel gives NaN for n - ddof <= 0).
-            bool degenerate = lane.Length - ddof <= 0;
-            Reductions.Variance<T>(src, lane, values, degenerate ? 0 : Math.Max(ddof, 0), NanPolicy.Propagate, VarianceMethod.TwoPass, method, deviationMethod);
+            // With NaN omitted (nanvar) the kernel's NaN for n - ddof <= 0 is exactly numpy's.
+            bool degenerate = nan == NanPolicy.Propagate && lane.Length - ddof <= 0;
+            Reductions.Variance<T>(src, lane, values, degenerate ? 0 : Math.Max(ddof, 0), nan, VarianceMethod.TwoPass, method, deviationMethod);
             if (degenerate)
                 for (int i = 0; i < values.Length; i++) values[i] = values[i] > T.Zero ? T.PositiveInfinity : T.NaN;
         }
@@ -237,14 +249,18 @@ public static class KernelPath
     /// <summary>Tries the kernels for <c>median</c> (<paramref name="q"/> null) or the quantiles <paramref name="q"/> (probabilities in [0, 1]).
     /// The result of a quantile has the probability axis first: shape <c>[q.Length] + reduced shape</c>. Integers and bool must be cast to float64 by the caller.</summary>
     internal static bool TryOrder(NDArray a, int[] axes, bool keepdims, double[]? q, QuantileMethod method, out NDArray result)
+        => TryOrder(a, axes, keepdims, q, method, NanPolicy.Propagate, out result);
+
+    internal static bool TryOrder(NDArray a, int[] axes, bool keepdims, double[]? q, QuantileMethod method, NanPolicy nan, out NDArray result)
     {
         result = null!;
         var scope = current.Value;
-        if (scope is { Enabled: false }) return false;
+        if (scope is { Enabled: false } && nan == NanPolicy.Propagate) return false;
         NDArray? r = a.DType switch
         {
-            DType.Float32 => Order<float>(a, axes, keepdims, q, method),
-            DType.Float64 => Order<double>(a, axes, keepdims, q, method),
+            DType.Float16 => Order<Half>(a, axes, keepdims, q, method, nan),
+            DType.Float32 => Order<float>(a, axes, keepdims, q, method, nan),
+            DType.Float64 => Order<double>(a, axes, keepdims, q, method, nan),
             _ => null,
         };
         if (r is null) return false;
@@ -253,7 +269,7 @@ public static class KernelPath
         return true;
     }
 
-    static NDArray? Order<T>(NDArray a, int[] axes, bool keepdims, double[]? q, QuantileMethod method) where T : unmanaged, IFloatingPointIeee754<T>
+    static NDArray? Order<T>(NDArray a, int[] axes, bool keepdims, double[]? q, QuantileMethod method, NanPolicy nan) where T : unmanaged, IFloatingPointIeee754<T>
     {
         var buffer = Prepare<T>(a, axes, out int offset, out var lane, out _, out _);
         if (q is not null && lane.Count > 0 && lane.Length == 0) return null;   // numpy fails on an empty slice: left to the general engine's error
@@ -262,12 +278,162 @@ public static class KernelPath
         if (q is null)
         {
             var medians = new T[lane.Count];
-            Reductions.Median<T>(src, lane, medians, NanPolicy.Propagate, MedianAverage.Mean);   // numpy: the mean of the two middle values
+            Reductions.Median<T>(src, lane, medians, nan, MedianAverage.Mean);   // numpy: the mean of the two middle values
             return new NDArray(a.DType, medians, outShape);
         }
         var values = new T[q.Length * lane.Count];
-        Statistics.Quantile<T>(src, lane, q, values, method, NanPolicy.Propagate);
+        Statistics.Quantile<T>(src, lane, q, values, method, nan);
         return new NDArray(a.DType, values, new[] { q.Length }.Concat(outShape).ToArray());
+    }
+
+    // ------------------------------------------------------------------ any, all, count_nonzero, argmax, argmin, diff
+
+    static NDArray? WithT(NDArray a, Func<NDArray, NDArray?> byType) => a.DType == DType.Bool ? byType(a.CastTo(DType.UInt8)) : byType(a);
+
+    /// <summary>Tries the kernels for <c>any</c> (<paramref name="all"/> false) or <c>all</c> over <paramref name="axes"/>. NaN counts as true. The result is bool.</summary>
+    internal static bool TryTruth(bool all, NDArray a, int[] axes, bool keepdims, out NDArray result)
+        => Finish(WithT(a, x => x.DType switch
+        {
+            DType.Int8 => Truth<sbyte>(all, x, axes, keepdims),
+            DType.UInt8 => Truth<byte>(all, x, axes, keepdims),
+            DType.Int16 => Truth<short>(all, x, axes, keepdims),
+            DType.UInt16 => Truth<ushort>(all, x, axes, keepdims),
+            DType.Int32 => Truth<int>(all, x, axes, keepdims),
+            DType.UInt32 => Truth<uint>(all, x, axes, keepdims),
+            DType.Int64 => Truth<long>(all, x, axes, keepdims),
+            DType.UInt64 => Truth<ulong>(all, x, axes, keepdims),
+            DType.Float16 => Truth<Half>(all, x, axes, keepdims),
+            DType.Float32 => Truth<float>(all, x, axes, keepdims),
+            DType.Float64 => Truth<double>(all, x, axes, keepdims),
+            _ => null,
+        }), out result, nan: NanPolicy.Propagate);
+
+    /// <summary>Tries the kernels for <c>count_nonzero</c> over <paramref name="axes"/> (int64 result; NaN counts as non-zero).</summary>
+    internal static bool TryCountNonzero(NDArray a, int[] axes, bool keepdims, out NDArray result)
+        => Finish(WithT(a, x => x.DType switch
+        {
+            DType.Int8 => Count<sbyte>(x, axes, keepdims),
+            DType.UInt8 => Count<byte>(x, axes, keepdims),
+            DType.Int16 => Count<short>(x, axes, keepdims),
+            DType.UInt16 => Count<ushort>(x, axes, keepdims),
+            DType.Int32 => Count<int>(x, axes, keepdims),
+            DType.UInt32 => Count<uint>(x, axes, keepdims),
+            DType.Int64 => Count<long>(x, axes, keepdims),
+            DType.UInt64 => Count<ulong>(x, axes, keepdims),
+            DType.Float16 => Count<Half>(x, axes, keepdims),
+            DType.Float32 => Count<float>(x, axes, keepdims),
+            DType.Float64 => Count<double>(x, axes, keepdims),
+            _ => null,
+        }), out result, nan: NanPolicy.Propagate);
+
+    /// <summary>Tries the kernels for <c>argmax</c>/<c>argmin</c> (and, with <see cref="NanPolicy.Omit"/>, <c>nanargmax</c>/<c>nanargmin</c>) over <paramref name="axes"/>.
+    /// The result is int64. <paramref name="allNan"/> tells that a slice held only NaN (only meaningful with Omit).</summary>
+    internal static bool TryArg(bool max, NDArray a, int[] axes, bool keepdims, NanPolicy nan, out NDArray result, out bool allNan)
+    {
+        bool bad = false;
+        bool ok = Finish(WithT(a, x =>
+        {
+            (NDArray? r, bool b) = x.DType switch
+            {
+                DType.Int8 => Arg<sbyte>(max, x, axes, keepdims, nan),
+                DType.UInt8 => Arg<byte>(max, x, axes, keepdims, nan),
+                DType.Int16 => Arg<short>(max, x, axes, keepdims, nan),
+                DType.UInt16 => Arg<ushort>(max, x, axes, keepdims, nan),
+                DType.Int32 => Arg<int>(max, x, axes, keepdims, nan),
+                DType.UInt32 => Arg<uint>(max, x, axes, keepdims, nan),
+                DType.Int64 => Arg<long>(max, x, axes, keepdims, nan),
+                DType.UInt64 => Arg<ulong>(max, x, axes, keepdims, nan),
+                DType.Float16 => Arg<Half>(max, x, axes, keepdims, nan),
+                DType.Float32 => Arg<float>(max, x, axes, keepdims, nan),
+                DType.Float64 => Arg<double>(max, x, axes, keepdims, nan),
+                _ => ((NDArray?)null, false),
+            };
+            bad = b;
+            return r;
+        }), out result, nan);
+        allNan = bad;
+        return ok;
+    }
+
+    /// <summary>Tries the kernels for <c>diff</c> of order <paramref name="n"/> along <paramref name="axis"/> (normalised); not for bool, which numpy compares.</summary>
+    internal static bool TryDiff(NDArray a, int n, int axis, out NDArray result)
+        => Finish(a.DType switch
+        {
+            DType.Int8 => Difference<sbyte>(a, n, axis),
+            DType.UInt8 => Difference<byte>(a, n, axis),
+            DType.Int16 => Difference<short>(a, n, axis),
+            DType.UInt16 => Difference<ushort>(a, n, axis),
+            DType.Int32 => Difference<int>(a, n, axis),
+            DType.UInt32 => Difference<uint>(a, n, axis),
+            DType.Int64 => Difference<long>(a, n, axis),
+            DType.UInt64 => Difference<ulong>(a, n, axis),
+            DType.Float16 => Difference<Half>(a, n, axis),
+            DType.Float32 => Difference<float>(a, n, axis),
+            DType.Float64 => Difference<double>(a, n, axis),
+            _ => null,
+        }, out result, nan: NanPolicy.Propagate);
+
+    static bool Finish(NDArray? r, out NDArray result, NanPolicy nan)
+    {
+        result = null!;
+        var scope = current.Value;
+        if (scope is { Enabled: false } && nan == NanPolicy.Propagate) return false;
+        if (r is null) return false;
+        scope?.Count();
+        result = r;
+        return true;
+    }
+
+    static NDArray Truth<T>(bool all, NDArray a, int[] axes, bool keepdims) where T : unmanaged, INumberBase<T>
+    {
+        if (current.Value is { Enabled: false }) return null!;
+        var buffer = Prepare<T>(a, axes, out int offset, out var lane, out _, out _);
+        var values = new bool[lane.Count];
+        var src = Window(buffer, offset, lane);
+        if (all) Reductions.All<T>(src, lane, values, true); else Reductions.Any<T>(src, lane, values, true);
+        return new NDArray(DType.Bool, values, Red.OutShape(a.Shape, axes, keepdims));
+    }
+
+    static NDArray Count<T>(NDArray a, int[] axes, bool keepdims) where T : unmanaged, INumberBase<T>
+    {
+        if (current.Value is { Enabled: false }) return null!;
+        var buffer = Prepare<T>(a, axes, out int offset, out var lane, out _, out _);
+        var counts = new int[lane.Count];
+        Reductions.CountNonZero<T>(Window(buffer, offset, lane), lane, counts, true);
+        var values = new long[counts.Length];
+        for (int i = 0; i < values.Length; i++) values[i] = counts[i];
+        return new NDArray(DType.Int64, values, Red.OutShape(a.Shape, axes, keepdims));
+    }
+
+    static (NDArray?, bool) Arg<T>(bool max, NDArray a, int[] axes, bool keepdims, NanPolicy nan) where T : unmanaged, INumber<T>
+    {
+        if (nan == NanPolicy.Propagate && current.Value is { Enabled: false }) return (null, false);
+        var buffer = Prepare<T>(a, axes, out int offset, out var lane, out _, out _);
+        if (lane.Length == 0) throw new NDValueException($"attempt to get {(max ? "argmax" : "argmin")} of an empty sequence");
+        var src = Window(buffer, offset, lane);
+        var values = new T[lane.Count];
+        var indices = new int[lane.Count];
+        if (max) Reductions.Max<T>(src, lane, values, indices, nan); else Reductions.Min<T>(src, lane, values, indices, nan);
+        bool allNan = false;
+        var result = new long[indices.Length];
+        for (int i = 0; i < result.Length; i++) { result[i] = indices[i]; if (T.IsNaN(values[i])) allNan = true; }
+        // with NaN propagated a NaN value is a legitimate answer (the index of the first NaN); only the omitting variant reports an all-NaN slice
+        return (new NDArray(DType.Int64, result, Red.OutShape(a.Shape, axes, keepdims)), nan == NanPolicy.Omit && allNan);
+    }
+
+    static NDArray Difference<T>(NDArray a, int n, int axis) where T : unmanaged, INumber<T>
+    {
+        if (current.Value is { Enabled: false }) return null!;
+        var shape = (int[])a.Shape.Clone();
+        var buffer = CContiguous<T>(a, out int offset);
+        var lane = Lane.ForRowMajorAxis(shape, axis);
+        int outLength = Math.Max(shape[axis] - n, 0);
+        var outShape = (int[])shape.Clone();
+        outShape[axis] = outLength;
+        var outLane = new Lane(outLength, lane.Inner, lane.Outer);
+        var values = new T[outLane.Total];
+        Scans.Difference<T>(Window(buffer, offset, lane), lane, values, n);
+        return new NDArray(a.DType, values, outShape);
     }
 
     // ------------------------------------------------------------------ gradient, trapezoid, histogram
@@ -307,6 +473,7 @@ public static class KernelPath
         if (scope is { Enabled: false }) return false;
         NDArray? r = f.DType switch
         {
+            DType.Float16 => Gradient<Half>(f, axis, h, x),
             DType.Float32 => Gradient<float>(f, axis, h, x),
             DType.Float64 => Gradient<double>(f, axis, h, x),
             _ => null,
@@ -343,6 +510,7 @@ public static class KernelPath
         if (scope is { Enabled: false }) return false;
         NDArray? r = y.DType switch
         {
+            DType.Float16 => Trapezoid<Half>(y, axis, dx, x),
             DType.Float32 => Trapezoid<float>(y, axis, dx, x),
             DType.Float64 => Trapezoid<double>(y, axis, dx, x),
             _ => null,
@@ -389,7 +557,7 @@ public static class KernelPath
 
     // ------------------------------------------------------------------ scans
 
-    static NDArray Scan<T>(Op op, NDArray a, int? axis) where T : unmanaged, INumber<T>
+    static NDArray Scan<T>(Op op, NDArray a, int? axis, NanPolicy nan) where T : unmanaged, INumber<T>
     {
         var shape = (int[])a.Shape.Clone();
         var strides = a.Strides;
@@ -418,7 +586,7 @@ public static class KernelPath
                 }
             }
             var lane = axis is null ? Lane.Flat(size) : Lane.ForRowMajorAxis(shape, axis.Value);
-            Scans.Scan<T>(contiguous.AsSpan(offset, size), lane, values, op == Op.CumSum ? ScanOp.Sum : ScanOp.Product, ScanDirection.Forward, NanPolicy.Propagate);
+            Scans.Scan<T>(contiguous.AsSpan(offset, size), lane, values, op == Op.CumSum ? ScanOp.Sum : ScanOp.Product, ScanDirection.Forward, nan);
         }
         return new NDArray(a.DType, values, resultShape);
     }

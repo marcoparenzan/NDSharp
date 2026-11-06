@@ -4,6 +4,7 @@
 // root for full license information.
 
 using System.Numerics;
+using MathemaSharp.Kernels;
 
 namespace NDSharp;
 
@@ -309,17 +310,21 @@ public static partial class np
     /// <c>interpolated_inverted_cdf</c>, <c>hazen</c>, <c>weibull</c>, <c>median_unbiased</c>, <c>normal_unbiased</c>, <c>lower</c>, <c>higher</c>, <c>midpoint</c>, <c>nearest</c>
     /// (all of numpy's). Every method needs float32 or float64 data, or integers and bool, which are ordered as float64.</summary>
     public static NDArray Percentile(NDArray a, NDArray q, int[]? axis, bool keepdims, bool isQuantile, string method)
+        => PercentileCore(a, q, axis, keepdims, isQuantile, method, NanPolicy.Propagate);
+
+    private static NDArray PercentileCore(NDArray a, NDArray q, int[]? axis, bool keepdims, bool isQuantile, string method, NanPolicy nan)
     {
         var quantileMethod = QuantileMethodOf(method);
         var axes = Red.NormalizeAxes(axis, a.Ndim);
         var qs = q.AsType(DType.Float64);
         var qv = qs.ToArray<double>().Select(v => isQuantile ? v : v / 100.0).ToArray();
         if (qv.Any(v => v < 0 || v > 1)) throw new NDValueException(isQuantile ? "Quantiles must be in the range [0, 1]" : "Percentiles must be in the range [0, 100]");
-        if (KernelPath.TryOrder(ForOrder(a), axes, keepdims, qv, quantileMethod, out var fast))
+        if (KernelPath.TryOrder(ForOrder(a), axes, keepdims, qv, quantileMethod, nan, out var fast))
         {
             var shape = Red.OutShape(a.Shape, axes, keepdims);
             return Reshape(fast, q.Ndim == 0 ? shape : q.Shape.Concat(shape).ToArray());
         }
+        if (nan == NanPolicy.Omit) throw new NDValueException("cannot compute a quantile of an empty slice");
         if (method != "linear") throw new NDNotSupportedException($"quantile method '{method}' is only implemented for float32 and float64 data");
         var (flat, lead) = CollapseAxes(a.DType.IsFloat() ? a : a.AsType(DType.Float64), axes);
         int n = flat.Shape[^1];
@@ -355,6 +360,7 @@ public static partial class np
     {
         if (a.Ndim == 0) throw new NDValueException("diff requires input that is at least one dimensional");
         int ax = NormalizeAxis(axis, a.Ndim);
+        if (n > 0 && KernelPath.TryDiff(a, n, ax, out var fast)) return fast;
         var r = a;
         for (int k = 0; k < n; k++)
         {
@@ -424,7 +430,7 @@ public static partial class np
             bool uniform = (bool)All(Equal(dxs, dxs.Get(0))).GetAt(0);
             if (uniform)
             {
-                result.Add(Gradient(f, new[] { Convert.ToDouble(dxs.Get(0).GetAt(0)) }, new[] { a0 })[0]);
+                result.Add(Gradient(f, new[] { Convert.ToDouble(dxs.Get(0).AsType(DType.Float64).GetAt(0)) }, new[] { a0 })[0]);
                 continue;
             }
             if (KernelPath.TryGradient(ft, a0, 0, x.DType.IsFloat() ? x : x.AsType(DType.Float64), out var kernelGradient)) { result.Add(kernelGradient); continue; }

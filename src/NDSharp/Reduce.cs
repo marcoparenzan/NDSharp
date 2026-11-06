@@ -4,6 +4,7 @@
 // root for full license information.
 
 using System.Numerics;
+using MathemaSharp.Kernels;
 
 namespace NDSharp;
 
@@ -342,13 +343,27 @@ public static partial class np
         => Subtract(Max(a, axis, keepdims), Min(a, axis, keepdims));
 
     public static NDArray Any(NDArray a, int[]? axis = null, bool keepdims = false)
-        => Red.Fold<MaxK>(a.CastTo(DType.Bool).CastTo(DType.UInt8), Red.NormalizeAxes(axis, a.Ndim), keepdims, 0L, "logical_or").CastTo(DType.Bool);
+    {
+        var axes = Red.NormalizeAxes(axis, a.Ndim);
+        if (KernelPath.TryTruth(false, a, axes, keepdims, out var fast)) return fast;
+        return Red.Fold<MaxK>(a.CastTo(DType.Bool).CastTo(DType.UInt8), axes, keepdims, 0L, "logical_or").CastTo(DType.Bool);
+    }
 
     public static NDArray All(NDArray a, int[]? axis = null, bool keepdims = false)
-        => Red.Fold<MinK>(a.CastTo(DType.Bool).CastTo(DType.UInt8), Red.NormalizeAxes(axis, a.Ndim), keepdims, 1L, "logical_and").CastTo(DType.Bool);
+    {
+        var axes = Red.NormalizeAxes(axis, a.Ndim);
+        if (KernelPath.TryTruth(true, a, axes, keepdims, out var fast)) return fast;
+        return Red.Fold<MinK>(a.CastTo(DType.Bool).CastTo(DType.UInt8), axes, keepdims, 1L, "logical_and").CastTo(DType.Bool);
+    }
 
-    public static NDArray ArgMax(NDArray a, int? axis = null, bool keepdims = false) => Red.ArgBest(a, axis, keepdims, true);
-    public static NDArray ArgMin(NDArray a, int? axis = null, bool keepdims = false) => Red.ArgBest(a, axis, keepdims, false);
+    public static NDArray ArgMax(NDArray a, int? axis = null, bool keepdims = false) => ArgExtreme(a, axis, keepdims, true);
+    public static NDArray ArgMin(NDArray a, int? axis = null, bool keepdims = false) => ArgExtreme(a, axis, keepdims, false);
+
+    private static NDArray ArgExtreme(NDArray a, int? axis, bool keepdims, bool max)
+    {
+        int[] axes = axis is null ? Enumerable.Range(0, a.Ndim).ToArray() : new[] { NormalizeAxis(axis.Value, a.Ndim) };
+        return KernelPath.TryArg(max, a, axes, keepdims, NanPolicy.Propagate, out var fast, out _) ? fast : Red.ArgBest(a, axis, keepdims, max);
+    }
 
     public static NDArray CumSum(NDArray a, int? axis = null, DType? dtype = null) => Cumulative(a, axis, dtype, KernelPath.Op.CumSum);
     public static NDArray CumProd(NDArray a, int? axis = null, DType? dtype = null) => Cumulative(a, axis, dtype, KernelPath.Op.CumProd);
@@ -412,7 +427,7 @@ public static partial class np
     // ================================================================ counting / searching
 
     public static NDArray CountNonzero(NDArray a, int[]? axis = null, bool keepdims = false)
-        => Sum(NotEqual(a, NDArray.WeakScalar(0L)), axis, keepdims);
+        => KernelPath.TryCountNonzero(a, Red.NormalizeAxes(axis, a.Ndim), keepdims, out var fast) ? fast : Sum(NotEqual(a, NDArray.WeakScalar(0L)), axis, keepdims);
 
     /// <summary>numpy <c>nonzero</c>: one int64 index array per dimension, C-order.</summary>
     public static NDArray[] NonZero(NDArray a)

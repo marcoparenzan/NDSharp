@@ -10,7 +10,7 @@ namespace NDSharp.Tests;
 /// running in parallel do not disturb them.</summary>
 public class KernelPathTests
 {
-    internal static readonly DType[] Dtypes = [DType.Int8, DType.UInt8, DType.Int16, DType.UInt16, DType.Int32, DType.UInt32, DType.Int64, DType.UInt64, DType.Float32, DType.Float64, DType.Bool];
+    internal static readonly DType[] Dtypes = [DType.Int8, DType.UInt8, DType.Int16, DType.UInt16, DType.Int32, DType.UInt32, DType.Int64, DType.UInt64, DType.Float16, DType.Float32, DType.Float64, DType.Bool];
 
     public static IEnumerable<object[]> DtypeCases() => Dtypes.Select(d => new object[] { d });
 
@@ -77,7 +77,7 @@ public class KernelPathTests
     [Theory, MemberData(nameof(DtypeCases))]
     public void ReductionsMatchTheEngineOnEveryAxesCombination(DType dtype)
     {
-        bool isFloat = dtype is DType.Float32 or DType.Float64;
+        bool isFloat = dtype is DType.Float16 or DType.Float32 or DType.Float64;
         foreach (var specials in isFloat ? new[] { false, true } : [false])
         {
             var a = Make(dtype, specials, 4, 5, 6);
@@ -197,12 +197,12 @@ public class KernelPathTests
     }
 
     [Fact]
-    public void Float16AndComplexStayOnTheGeneralEngine()
+    public void Float16RunsOnTheKernelsToo()
     {
         var h = Make(DType.Float64, false, 4, 5).AsType(DType.Float16);
         using var scope = KernelPath.Begin(true);
-        _ = np.Sum(h, [0]); _ = np.Max(h); _ = np.Mean(h); _ = np.CumSum(h, 0);
-        Assert.Equal(0, scope.Calls);
+        _ = np.Sum(h, [0]); _ = np.Max(h); _ = np.Mean(h); _ = np.CumSum(h, 0); _ = np.Median(h);
+        Assert.Equal(5, scope.Calls);
     }
 
     [Fact]
