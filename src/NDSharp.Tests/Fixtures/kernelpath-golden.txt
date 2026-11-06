@@ -8962,3 +8962,587 @@ OptionsDtypeAndErrors|bad cum axis	ERR|NDAxisException|axis 5 is out of bounds f
 SumOfNegativeZerosKeepsItsSignWhateverTheLayout|contiguous	Float64|2|8A5F16F43D7BE9D5
 SumOfNegativeZerosKeepsItsSignWhateverTheLayout|axis 0	Float64|3|7FD0131FA29E1BBC
 SumOfNegativeZerosKeepsItsSignWhateverTheLayout|transposed	Float64|2|8A5F16F43D7BE9D5
+Fft|fft Complex128 axis=0 norm=	Complex128|3,5,6|F9722C99FB338689
+Fft|ifft Complex128 axis=0 norm=	Complex128|3,5,6|8ECB274EC89EC62B
+Fft|fft Complex128 axis=0 norm=backward	Complex128|3,5,6|F9722C99FB338689
+Fft|ifft Complex128 axis=0 norm=backward	Complex128|3,5,6|8ECB274EC89EC62B
+Fft|fft Complex128 axis=0 norm=ortho	Complex128|3,5,6|2147D63DFC28631B
+Fft|ifft Complex128 axis=0 norm=ortho	Complex128|3,5,6|7E35FC12344F5E53
+Fft|fft Complex128 axis=0 norm=forward	Complex128|3,5,6|56D679600997EA52
+Fft|ifft Complex128 axis=0 norm=forward	Complex128|3,5,6|5A6D191F6E68F102
+Fft|fft Complex128 axis=1 norm=	Complex128|3,5,6|ED8A5593B9BCDB74
+Fft|ifft Complex128 axis=1 norm=	Complex128|3,5,6|9F918CC7C6AFBAD7
+Fft|fft Complex128 axis=1 norm=backward	Complex128|3,5,6|ED8A5593B9BCDB74
+Fft|ifft Complex128 axis=1 norm=backward	Complex128|3,5,6|9F918CC7C6AFBAD7
+Fft|fft Complex128 axis=1 norm=ortho	Complex128|3,5,6|FBF2B4AE3350E1A3
+Fft|ifft Complex128 axis=1 norm=ortho	Complex128|3,5,6|497BFFA66DFB72E3
+Fft|fft Complex128 axis=1 norm=forward	Complex128|3,5,6|8357CEFA015FC5D6
+Fft|ifft Complex128 axis=1 norm=forward	Complex128|3,5,6|D9F4FBE6FA432599
+Fft|fft Complex128 axis=2 norm=	Complex128|3,5,6|F436415F36A90D53
+Fft|ifft Complex128 axis=2 norm=	Complex128|3,5,6|E6145E650BD22757
+Fft|fft Complex128 axis=2 norm=backward	Complex128|3,5,6|F436415F36A90D53
+Fft|ifft Complex128 axis=2 norm=backward	Complex128|3,5,6|E6145E650BD22757
+Fft|fft Complex128 axis=2 norm=ortho	Complex128|3,5,6|430DE625B2333B97
+Fft|ifft Complex128 axis=2 norm=ortho	Complex128|3,5,6|C7EE71443EE56C2C
+Fft|fft Complex128 axis=2 norm=forward	Complex128|3,5,6|87AA5FD90993A6FC
+Fft|ifft Complex128 axis=2 norm=forward	Complex128|3,5,6|AADF0274011AD841
+Fft|fft Complex128 axis=-1 norm=	Complex128|3,5,6|F436415F36A90D53
+Fft|ifft Complex128 axis=-1 norm=	Complex128|3,5,6|E6145E650BD22757
+Fft|fft Complex128 axis=-1 norm=backward	Complex128|3,5,6|F436415F36A90D53
+Fft|ifft Complex128 axis=-1 norm=backward	Complex128|3,5,6|E6145E650BD22757
+Fft|fft Complex128 axis=-1 norm=ortho	Complex128|3,5,6|430DE625B2333B97
+Fft|ifft Complex128 axis=-1 norm=ortho	Complex128|3,5,6|C7EE71443EE56C2C
+Fft|fft Complex128 axis=-1 norm=forward	Complex128|3,5,6|87AA5FD90993A6FC
+Fft|ifft Complex128 axis=-1 norm=forward	Complex128|3,5,6|AADF0274011AD841
+Fft|fft Complex128 n=1 axis=1	Complex128|3,1,6|86972943FEC6298C
+Fft|fft Complex128 n=4 axis=1	Complex128|3,4,6|371E2683926983DA
+Fft|fft Complex128 n=5 axis=1	Complex128|3,5,6|ED8A5593B9BCDB74
+Fft|fft Complex128 n=9 axis=1	Complex128|3,9,6|DF5C80B7E39C07EF
+Fft|fft Complex128 n=16 axis=1	Complex128|3,16,6|489D310F3981C134
+Fft|fft2 Complex128	Complex128|3,5,6|3E5255E7C6E4EE6B
+Fft|ifft2 Complex128	Complex128|3,5,6|4C0E07C8E2DBE2D5
+Fft|fftn Complex128	Complex128|3,5,6|8EBDDB361328F387
+Fft|ifftn Complex128 axes 0,2	Complex128|3,5,6|171D04910E08F5F1
+Fft|fftn Complex128 s	Complex128|4,4,8|CE46959A39B4E6F7
+Fft|fftshift Complex128	Complex128|3,5,6|14D24C5ECEE8B7C2
+Fft|ifftshift Complex128 axes 1	Complex128|3,5,6|171326DC07AD74DE
+Fft|fft Float64 axis=0 norm=	Complex128|3,5,6|4C61BC28C2DBF955
+Fft|ifft Float64 axis=0 norm=	Complex128|3,5,6|BB558E48036EDD8C
+Fft|fft Float64 axis=0 norm=backward	Complex128|3,5,6|4C61BC28C2DBF955
+Fft|ifft Float64 axis=0 norm=backward	Complex128|3,5,6|BB558E48036EDD8C
+Fft|fft Float64 axis=0 norm=ortho	Complex128|3,5,6|61C4053D64D41030
+Fft|ifft Float64 axis=0 norm=ortho	Complex128|3,5,6|33B5632C6188D9AE
+Fft|fft Float64 axis=0 norm=forward	Complex128|3,5,6|465B59162AA66DD4
+Fft|ifft Float64 axis=0 norm=forward	Complex128|3,5,6|B17D997A0B617375
+Fft|fft Float64 axis=1 norm=	Complex128|3,5,6|2E467CB1BD1AB6F4
+Fft|ifft Float64 axis=1 norm=	Complex128|3,5,6|2FAF23B5FA431470
+Fft|fft Float64 axis=1 norm=backward	Complex128|3,5,6|2E467CB1BD1AB6F4
+Fft|ifft Float64 axis=1 norm=backward	Complex128|3,5,6|2FAF23B5FA431470
+Fft|fft Float64 axis=1 norm=ortho	Complex128|3,5,6|580C28EA04604213
+Fft|ifft Float64 axis=1 norm=ortho	Complex128|3,5,6|7230BC956ECA2BD7
+Fft|fft Float64 axis=1 norm=forward	Complex128|3,5,6|7FB3C40E194D1450
+Fft|ifft Float64 axis=1 norm=forward	Complex128|3,5,6|40B992EDF739F4DC
+Fft|fft Float64 axis=2 norm=	Complex128|3,5,6|94D2B61E3F57EAE3
+Fft|ifft Float64 axis=2 norm=	Complex128|3,5,6|B03A8EA73BA8EA9D
+Fft|fft Float64 axis=2 norm=backward	Complex128|3,5,6|94D2B61E3F57EAE3
+Fft|ifft Float64 axis=2 norm=backward	Complex128|3,5,6|B03A8EA73BA8EA9D
+Fft|fft Float64 axis=2 norm=ortho	Complex128|3,5,6|961F7343BA230D4C
+Fft|ifft Float64 axis=2 norm=ortho	Complex128|3,5,6|7FB887B89E8BDC77
+Fft|fft Float64 axis=2 norm=forward	Complex128|3,5,6|98E15416BD6DED14
+Fft|ifft Float64 axis=2 norm=forward	Complex128|3,5,6|1EA60A38F2F0D60C
+Fft|fft Float64 axis=-1 norm=	Complex128|3,5,6|94D2B61E3F57EAE3
+Fft|ifft Float64 axis=-1 norm=	Complex128|3,5,6|B03A8EA73BA8EA9D
+Fft|fft Float64 axis=-1 norm=backward	Complex128|3,5,6|94D2B61E3F57EAE3
+Fft|ifft Float64 axis=-1 norm=backward	Complex128|3,5,6|B03A8EA73BA8EA9D
+Fft|fft Float64 axis=-1 norm=ortho	Complex128|3,5,6|961F7343BA230D4C
+Fft|ifft Float64 axis=-1 norm=ortho	Complex128|3,5,6|7FB887B89E8BDC77
+Fft|fft Float64 axis=-1 norm=forward	Complex128|3,5,6|98E15416BD6DED14
+Fft|ifft Float64 axis=-1 norm=forward	Complex128|3,5,6|1EA60A38F2F0D60C
+Fft|fft Float64 n=1 axis=1	Complex128|3,1,6|406AA68652B4922B
+Fft|rfft Float64 n=1 axis=0	Complex128|1,5,6|99FAF2558C249C9A
+Fft|fft Float64 n=4 axis=1	Complex128|3,4,6|9F9633B5C91C91E6
+Fft|rfft Float64 n=4 axis=0	Complex128|3,5,6|9762226E56B196FB
+Fft|fft Float64 n=5 axis=1	Complex128|3,5,6|2E467CB1BD1AB6F4
+Fft|rfft Float64 n=5 axis=0	Complex128|3,5,6|29729CA157E6A41B
+Fft|fft Float64 n=9 axis=1	Complex128|3,9,6|3A6A82705AD9770A
+Fft|rfft Float64 n=9 axis=0	Complex128|5,5,6|747C867CD29DA2FF
+Fft|fft Float64 n=16 axis=1	Complex128|3,16,6|5BE2A7859233A23F
+Fft|rfft Float64 n=16 axis=0	Complex128|9,5,6|E8EBCC7D97BE7FF5
+Fft|fft2 Float64	Complex128|3,5,6|2E194AAF98B36B5A
+Fft|ifft2 Float64	Complex128|3,5,6|701DCB3E752D6818
+Fft|fftn Float64	Complex128|3,5,6|6004E7117ECD4D0D
+Fft|ifftn Float64 axes 0,2	Complex128|3,5,6|5D645FFE3772E4FE
+Fft|fftn Float64 s	Complex128|4,4,8|5B381BF3CF51F44A
+Fft|fftshift Float64	Float64|3,5,6|EC1BA3210DE6CCDC
+Fft|ifftshift Float64 axes 1	Float64|3,5,6|5B019930483D32B6
+Fft|fft Bool axis=0 norm=	Complex64|3,5,6|162FABE5E392D872
+Fft|ifft Bool axis=0 norm=	Complex64|3,5,6|9A563A84E985ED23
+Fft|fft Bool axis=0 norm=backward	Complex64|3,5,6|162FABE5E392D872
+Fft|ifft Bool axis=0 norm=backward	Complex64|3,5,6|9A563A84E985ED23
+Fft|fft Bool axis=0 norm=ortho	Complex64|3,5,6|51A0D4F153A06BDD
+Fft|ifft Bool axis=0 norm=ortho	Complex64|3,5,6|6388F1C84C11DF05
+Fft|fft Bool axis=0 norm=forward	Complex64|3,5,6|D22B8E1C4B4773BF
+Fft|ifft Bool axis=0 norm=forward	Complex64|3,5,6|7396A3B01DD3647B
+Fft|fft Bool axis=1 norm=	Complex64|3,5,6|1223E81075EEAE9C
+Fft|ifft Bool axis=1 norm=	Complex64|3,5,6|8D36C8CBD50E8B74
+Fft|fft Bool axis=1 norm=backward	Complex64|3,5,6|1223E81075EEAE9C
+Fft|ifft Bool axis=1 norm=backward	Complex64|3,5,6|8D36C8CBD50E8B74
+Fft|fft Bool axis=1 norm=ortho	Complex64|3,5,6|AE1D51D1F51738A3
+Fft|ifft Bool axis=1 norm=ortho	Complex64|3,5,6|D8D0AC284C22AC1C
+Fft|fft Bool axis=1 norm=forward	Complex64|3,5,6|F84FA490F0B9A3A2
+Fft|ifft Bool axis=1 norm=forward	Complex64|3,5,6|7A298F923C5C2C6B
+Fft|fft Bool axis=2 norm=	Complex64|3,5,6|957312AEB41D35A8
+Fft|ifft Bool axis=2 norm=	Complex64|3,5,6|92E4E1D1B728E04E
+Fft|fft Bool axis=2 norm=backward	Complex64|3,5,6|957312AEB41D35A8
+Fft|ifft Bool axis=2 norm=backward	Complex64|3,5,6|92E4E1D1B728E04E
+Fft|fft Bool axis=2 norm=ortho	Complex64|3,5,6|48ABED16147E8381
+Fft|ifft Bool axis=2 norm=ortho	Complex64|3,5,6|D637854FF09F9844
+Fft|fft Bool axis=2 norm=forward	Complex64|3,5,6|B93D239B05B9975C
+Fft|ifft Bool axis=2 norm=forward	Complex64|3,5,6|3021B6A442A1DBF2
+Fft|fft Bool axis=-1 norm=	Complex64|3,5,6|957312AEB41D35A8
+Fft|ifft Bool axis=-1 norm=	Complex64|3,5,6|92E4E1D1B728E04E
+Fft|fft Bool axis=-1 norm=backward	Complex64|3,5,6|957312AEB41D35A8
+Fft|ifft Bool axis=-1 norm=backward	Complex64|3,5,6|92E4E1D1B728E04E
+Fft|fft Bool axis=-1 norm=ortho	Complex64|3,5,6|48ABED16147E8381
+Fft|ifft Bool axis=-1 norm=ortho	Complex64|3,5,6|D637854FF09F9844
+Fft|fft Bool axis=-1 norm=forward	Complex64|3,5,6|B93D239B05B9975C
+Fft|ifft Bool axis=-1 norm=forward	Complex64|3,5,6|3021B6A442A1DBF2
+Fft|fft Bool n=1 axis=1	Complex64|3,1,6|07C12A094177162F
+Fft|rfft Bool n=1 axis=0	Complex64|1,5,6|BFB2772113BBA90D
+Fft|fft Bool n=4 axis=1	Complex64|3,4,6|58C052B23CB8F7C4
+Fft|rfft Bool n=4 axis=0	Complex64|3,5,6|A1B6E550A0A45FDA
+Fft|fft Bool n=5 axis=1	Complex64|3,5,6|1223E81075EEAE9C
+Fft|rfft Bool n=5 axis=0	Complex64|3,5,6|7A97FD1CB5656780
+Fft|fft Bool n=9 axis=1	Complex64|3,9,6|980CFDCB5332A658
+Fft|rfft Bool n=9 axis=0	Complex64|5,5,6|ED8B6064D89D1536
+Fft|fft Bool n=16 axis=1	Complex64|3,16,6|95CBCFA167CD01CC
+Fft|rfft Bool n=16 axis=0	Complex64|9,5,6|2B79E42BD85AE498
+Fft|fft2 Bool	Complex64|3,5,6|0571D20CD675EB7D
+Fft|ifft2 Bool	Complex64|3,5,6|633379430C4BB276
+Fft|fftn Bool	Complex64|3,5,6|B00F22AC6B4EA26C
+Fft|ifftn Bool axes 0,2	Complex64|3,5,6|744536F775C5E29B
+Fft|fftn Bool s	Complex64|4,4,8|D8AEF60BDFB4BE21
+Fft|fftshift Bool	Bool|3,5,6|57C62DB3CACDEE06
+Fft|ifftshift Bool axes 1	Bool|3,5,6|B169E8873BCD721C
+Fft|fft Complex64 axis=0 norm=	Complex64|3,5,6|7724667942A0829D
+Fft|ifft Complex64 axis=0 norm=	Complex64|3,5,6|D3107D994A06DEDD
+Fft|fft Complex64 axis=0 norm=backward	Complex64|3,5,6|7724667942A0829D
+Fft|ifft Complex64 axis=0 norm=backward	Complex64|3,5,6|D3107D994A06DEDD
+Fft|fft Complex64 axis=0 norm=ortho	Complex64|3,5,6|585225B0B6C8966C
+Fft|ifft Complex64 axis=0 norm=ortho	Complex64|3,5,6|9CDA6BE97A9FFE6F
+Fft|fft Complex64 axis=0 norm=forward	Complex64|3,5,6|F771E2E77C21C5E4
+Fft|ifft Complex64 axis=0 norm=forward	Complex64|3,5,6|84D613C019D06FE5
+Fft|fft Complex64 axis=1 norm=	Complex64|3,5,6|2F6CF2D779288804
+Fft|ifft Complex64 axis=1 norm=	Complex64|3,5,6|C3BA41069F23A25F
+Fft|fft Complex64 axis=1 norm=backward	Complex64|3,5,6|2F6CF2D779288804
+Fft|ifft Complex64 axis=1 norm=backward	Complex64|3,5,6|C3BA41069F23A25F
+Fft|fft Complex64 axis=1 norm=ortho	Complex64|3,5,6|78CB01D52489F32C
+Fft|ifft Complex64 axis=1 norm=ortho	Complex64|3,5,6|BEA0FF07D6C12219
+Fft|fft Complex64 axis=1 norm=forward	Complex64|3,5,6|3E8517B0072AB94E
+Fft|ifft Complex64 axis=1 norm=forward	Complex64|3,5,6|4D16FB9144C182B0
+Fft|fft Complex64 axis=2 norm=	Complex64|3,5,6|ADD34BFC2570FBFB
+Fft|ifft Complex64 axis=2 norm=	Complex64|3,5,6|2A964B057DF98756
+Fft|fft Complex64 axis=2 norm=backward	Complex64|3,5,6|ADD34BFC2570FBFB
+Fft|ifft Complex64 axis=2 norm=backward	Complex64|3,5,6|2A964B057DF98756
+Fft|fft Complex64 axis=2 norm=ortho	Complex64|3,5,6|CB788D32C513818F
+Fft|ifft Complex64 axis=2 norm=ortho	Complex64|3,5,6|F5440394ADA4C0B5
+Fft|fft Complex64 axis=2 norm=forward	Complex64|3,5,6|6AC47FE9C2E35344
+Fft|ifft Complex64 axis=2 norm=forward	Complex64|3,5,6|CFCC7DA86D02BE3E
+Fft|fft Complex64 axis=-1 norm=	Complex64|3,5,6|ADD34BFC2570FBFB
+Fft|ifft Complex64 axis=-1 norm=	Complex64|3,5,6|2A964B057DF98756
+Fft|fft Complex64 axis=-1 norm=backward	Complex64|3,5,6|ADD34BFC2570FBFB
+Fft|ifft Complex64 axis=-1 norm=backward	Complex64|3,5,6|2A964B057DF98756
+Fft|fft Complex64 axis=-1 norm=ortho	Complex64|3,5,6|CB788D32C513818F
+Fft|ifft Complex64 axis=-1 norm=ortho	Complex64|3,5,6|F5440394ADA4C0B5
+Fft|fft Complex64 axis=-1 norm=forward	Complex64|3,5,6|6AC47FE9C2E35344
+Fft|ifft Complex64 axis=-1 norm=forward	Complex64|3,5,6|CFCC7DA86D02BE3E
+Fft|fft Complex64 n=1 axis=1	Complex64|3,1,6|225F8DD927D33A70
+Fft|fft Complex64 n=4 axis=1	Complex64|3,4,6|9EE3EA1123C16B67
+Fft|fft Complex64 n=5 axis=1	Complex64|3,5,6|2F6CF2D779288804
+Fft|fft Complex64 n=9 axis=1	Complex64|3,9,6|F50847FDFE3CD106
+Fft|fft Complex64 n=16 axis=1	Complex64|3,16,6|228B25125F3F8250
+Fft|fft2 Complex64	Complex64|3,5,6|CCA3017921B5ECA5
+Fft|ifft2 Complex64	Complex64|3,5,6|7D4001D4ED26B6B0
+Fft|fftn Complex64	Complex64|3,5,6|6E6B6C47216B90F7
+Fft|ifftn Complex64 axes 0,2	Complex64|3,5,6|860D86F913AD26BF
+Fft|fftn Complex64 s	Complex64|4,4,8|8C2D96CE3C33E4AA
+Fft|fftshift Complex64	Complex64|3,5,6|4C61C2BD4A965015
+Fft|ifftshift Complex64 axes 1	Complex64|3,5,6|E43BC9A45D607A4E
+Fft|fft Int32 axis=0 norm=	Complex128|3,5,6|95AE7AC618D2AF1D
+Fft|ifft Int32 axis=0 norm=	Complex128|3,5,6|D4E7D9B2F19F08C0
+Fft|fft Int32 axis=0 norm=backward	Complex128|3,5,6|95AE7AC618D2AF1D
+Fft|ifft Int32 axis=0 norm=backward	Complex128|3,5,6|D4E7D9B2F19F08C0
+Fft|fft Int32 axis=0 norm=ortho	Complex128|3,5,6|0EA3C23C23B80DF2
+Fft|ifft Int32 axis=0 norm=ortho	Complex128|3,5,6|948BCAADEB8951D0
+Fft|fft Int32 axis=0 norm=forward	Complex128|3,5,6|457F324AF8E94E66
+Fft|ifft Int32 axis=0 norm=forward	Complex128|3,5,6|162FC37EC3B4FB1C
+Fft|fft Int32 axis=1 norm=	Complex128|3,5,6|BE4C931A561837EE
+Fft|ifft Int32 axis=1 norm=	Complex128|3,5,6|53F504C50502D1BF
+Fft|fft Int32 axis=1 norm=backward	Complex128|3,5,6|BE4C931A561837EE
+Fft|ifft Int32 axis=1 norm=backward	Complex128|3,5,6|53F504C50502D1BF
+Fft|fft Int32 axis=1 norm=ortho	Complex128|3,5,6|55161A5A9B3FDAAB
+Fft|ifft Int32 axis=1 norm=ortho	Complex128|3,5,6|FE199454C19101C6
+Fft|fft Int32 axis=1 norm=forward	Complex128|3,5,6|A4E3E20D61CE58B4
+Fft|ifft Int32 axis=1 norm=forward	Complex128|3,5,6|20710F3DABA71DC1
+Fft|fft Int32 axis=2 norm=	Complex128|3,5,6|509B4CF33ABACD49
+Fft|ifft Int32 axis=2 norm=	Complex128|3,5,6|B1841BA28B283BB7
+Fft|fft Int32 axis=2 norm=backward	Complex128|3,5,6|509B4CF33ABACD49
+Fft|ifft Int32 axis=2 norm=backward	Complex128|3,5,6|B1841BA28B283BB7
+Fft|fft Int32 axis=2 norm=ortho	Complex128|3,5,6|914D8276EE195E5D
+Fft|ifft Int32 axis=2 norm=ortho	Complex128|3,5,6|6A27BAD763616632
+Fft|fft Int32 axis=2 norm=forward	Complex128|3,5,6|F76120358F464086
+Fft|ifft Int32 axis=2 norm=forward	Complex128|3,5,6|6D8BB92C3993B427
+Fft|fft Int32 axis=-1 norm=	Complex128|3,5,6|509B4CF33ABACD49
+Fft|ifft Int32 axis=-1 norm=	Complex128|3,5,6|B1841BA28B283BB7
+Fft|fft Int32 axis=-1 norm=backward	Complex128|3,5,6|509B4CF33ABACD49
+Fft|ifft Int32 axis=-1 norm=backward	Complex128|3,5,6|B1841BA28B283BB7
+Fft|fft Int32 axis=-1 norm=ortho	Complex128|3,5,6|914D8276EE195E5D
+Fft|ifft Int32 axis=-1 norm=ortho	Complex128|3,5,6|6A27BAD763616632
+Fft|fft Int32 axis=-1 norm=forward	Complex128|3,5,6|F76120358F464086
+Fft|ifft Int32 axis=-1 norm=forward	Complex128|3,5,6|6D8BB92C3993B427
+Fft|fft Int32 n=1 axis=1	Complex128|3,1,6|F4CE50E6AF980D0B
+Fft|rfft Int32 n=1 axis=0	Complex128|1,5,6|C529B47892139776
+Fft|fft Int32 n=4 axis=1	Complex128|3,4,6|CB4D20C76172E547
+Fft|rfft Int32 n=4 axis=0	Complex128|3,5,6|0AE2DDCDEB9FAAE4
+Fft|fft Int32 n=5 axis=1	Complex128|3,5,6|BE4C931A561837EE
+Fft|rfft Int32 n=5 axis=0	Complex128|3,5,6|5E4A47129ACE5B94
+Fft|fft Int32 n=9 axis=1	Complex128|3,9,6|52A4E0EFDD78B633
+Fft|rfft Int32 n=9 axis=0	Complex128|5,5,6|29E5D8CCDB1CFCC0
+Fft|fft Int32 n=16 axis=1	Complex128|3,16,6|C3FB724BDED498D2
+Fft|rfft Int32 n=16 axis=0	Complex128|9,5,6|60DE7B58541DD41F
+Fft|fft2 Int32	Complex128|3,5,6|8811CA79CFAF7198
+Fft|ifft2 Int32	Complex128|3,5,6|766647CCB11C100F
+Fft|fftn Int32	Complex128|3,5,6|A4A2A624A313C703
+Fft|ifftn Int32 axes 0,2	Complex128|3,5,6|83D163BC87F2F79F
+Fft|fftn Int32 s	Complex128|4,4,8|5C4A555668065599
+Fft|fftshift Int32	Int32|3,5,6|9479A8D7E638E8A5
+Fft|ifftshift Int32 axes 1	Int32|3,5,6|44883F5149355E13
+Fft|fft Float32 axis=0 norm=	Complex64|3,5,6|9E052844F91A6248
+Fft|ifft Float32 axis=0 norm=	Complex64|3,5,6|9C49B6C6F2FB1F08
+Fft|fft Float32 axis=0 norm=backward	Complex64|3,5,6|9E052844F91A6248
+Fft|ifft Float32 axis=0 norm=backward	Complex64|3,5,6|9C49B6C6F2FB1F08
+Fft|fft Float32 axis=0 norm=ortho	Complex64|3,5,6|7177F4ECE924F308
+Fft|ifft Float32 axis=0 norm=ortho	Complex64|3,5,6|4E1598A38875A6D1
+Fft|fft Float32 axis=0 norm=forward	Complex64|3,5,6|83C5DC01EE857AE6
+Fft|ifft Float32 axis=0 norm=forward	Complex64|3,5,6|9A4C70698CA36ABA
+Fft|fft Float32 axis=1 norm=	Complex64|3,5,6|5AD5E8C81C8EF454
+Fft|ifft Float32 axis=1 norm=	Complex64|3,5,6|8EE9E4C2B2AFAD7B
+Fft|fft Float32 axis=1 norm=backward	Complex64|3,5,6|5AD5E8C81C8EF454
+Fft|ifft Float32 axis=1 norm=backward	Complex64|3,5,6|8EE9E4C2B2AFAD7B
+Fft|fft Float32 axis=1 norm=ortho	Complex64|3,5,6|17F1160264B4DEE7
+Fft|ifft Float32 axis=1 norm=ortho	Complex64|3,5,6|31F8A5B4F1F690BF
+Fft|fft Float32 axis=1 norm=forward	Complex64|3,5,6|FF3628BAFFD0494E
+Fft|ifft Float32 axis=1 norm=forward	Complex64|3,5,6|BC9E84B0C7B402C0
+Fft|fft Float32 axis=2 norm=	Complex64|3,5,6|B53FBCFE77220B00
+Fft|ifft Float32 axis=2 norm=	Complex64|3,5,6|F6EC3F5B671C9B04
+Fft|fft Float32 axis=2 norm=backward	Complex64|3,5,6|B53FBCFE77220B00
+Fft|ifft Float32 axis=2 norm=backward	Complex64|3,5,6|F6EC3F5B671C9B04
+Fft|fft Float32 axis=2 norm=ortho	Complex64|3,5,6|857C9CB9B1E3E99C
+Fft|ifft Float32 axis=2 norm=ortho	Complex64|3,5,6|0A4C2235CD7BDC55
+Fft|fft Float32 axis=2 norm=forward	Complex64|3,5,6|1F81ABA925A92FCF
+Fft|ifft Float32 axis=2 norm=forward	Complex64|3,5,6|EB89AF8D3552A908
+Fft|fft Float32 axis=-1 norm=	Complex64|3,5,6|B53FBCFE77220B00
+Fft|ifft Float32 axis=-1 norm=	Complex64|3,5,6|F6EC3F5B671C9B04
+Fft|fft Float32 axis=-1 norm=backward	Complex64|3,5,6|B53FBCFE77220B00
+Fft|ifft Float32 axis=-1 norm=backward	Complex64|3,5,6|F6EC3F5B671C9B04
+Fft|fft Float32 axis=-1 norm=ortho	Complex64|3,5,6|857C9CB9B1E3E99C
+Fft|ifft Float32 axis=-1 norm=ortho	Complex64|3,5,6|0A4C2235CD7BDC55
+Fft|fft Float32 axis=-1 norm=forward	Complex64|3,5,6|1F81ABA925A92FCF
+Fft|ifft Float32 axis=-1 norm=forward	Complex64|3,5,6|EB89AF8D3552A908
+Fft|fft Float32 n=1 axis=1	Complex64|3,1,6|36B0051FA2A614E5
+Fft|rfft Float32 n=1 axis=0	Complex64|1,5,6|23B3CA7EEC1A7AE8
+Fft|fft Float32 n=4 axis=1	Complex64|3,4,6|9DEE221A2F34D777
+Fft|rfft Float32 n=4 axis=0	Complex64|3,5,6|F38212A748E86225
+Fft|fft Float32 n=5 axis=1	Complex64|3,5,6|5AD5E8C81C8EF454
+Fft|rfft Float32 n=5 axis=0	Complex64|3,5,6|D8207F4E2618C096
+Fft|fft Float32 n=9 axis=1	Complex64|3,9,6|9555ACC69F6932B3
+Fft|rfft Float32 n=9 axis=0	Complex64|5,5,6|0F6720A7EBC2BB35
+Fft|fft Float32 n=16 axis=1	Complex64|3,16,6|166A3F51F9A03A11
+Fft|rfft Float32 n=16 axis=0	Complex64|9,5,6|7C0C56E68AEDE7E1
+Fft|fft2 Float32	Complex64|3,5,6|754E6C52C66EC637
+Fft|ifft2 Float32	Complex64|3,5,6|F52F5B77DEAFD315
+Fft|fftn Float32	Complex64|3,5,6|7026216FBF4341D1
+Fft|ifftn Float32 axes 0,2	Complex64|3,5,6|DF39251DE0156ABC
+Fft|fftn Float32 s	Complex64|4,4,8|85F199DA14189148
+Fft|fftshift Float32	Float32|3,5,6|9F8C48DF9F8C7FB6
+Fft|ifftshift Float32 axes 1	Float32|3,5,6|C2ACFB9A5BF84446
+Fft|fft Complex128 n=1	Complex128|1|71F6BFA4D494AE1B
+Fft|ifft Complex128 n=1	Complex128|1|71F6BFA4D494AE1B
+Fft|fft Complex128 n=2	Complex128|2|8432456A7B638F7C
+Fft|ifft Complex128 n=2	Complex128|2|D23AD28C558B8871
+Fft|fft Complex128 n=3	Complex128|3|88D1333E07139B06
+Fft|ifft Complex128 n=3	Complex128|3|D49202B67F5B8BFB
+Fft|fft Complex128 n=4	Complex128|4|8440E8B40E6E0EB2
+Fft|ifft Complex128 n=4	Complex128|4|FE4A4202A99A18BA
+Fft|fft Complex128 n=5	Complex128|5|06B18872E0BA108A
+Fft|ifft Complex128 n=5	Complex128|5|436CFD54AE5C2661
+Fft|fft Complex128 n=7	Complex128|7|3C0CCFA04E0A811B
+Fft|ifft Complex128 n=7	Complex128|7|AFE4BBB132553C1B
+Fft|fft Complex128 n=8	Complex128|8|EB74170BD0906166
+Fft|ifft Complex128 n=8	Complex128|8|1C59A636115640D3
+Fft|fft Complex128 n=12	Complex128|12|F046CF81B19918D7
+Fft|ifft Complex128 n=12	Complex128|12|2B8817B3747103D8
+Fft|fft Complex128 n=16	Complex128|16|FC44070CC66B102F
+Fft|ifft Complex128 n=16	Complex128|16|19B997521A003D50
+Fft|fft Complex128 n=17	Complex128|17|9060A814927DECCA
+Fft|ifft Complex128 n=17	Complex128|17|C95C759B5F1AE102
+Fft|fft Complex128 n=31	Complex128|31|419AA030C7F437A9
+Fft|ifft Complex128 n=31	Complex128|31|736BC37AAF19FB83
+Fft|fft Complex128 n=64	Complex128|64|FF1A7C9920C5AD07
+Fft|ifft Complex128 n=64	Complex128|64|42012EBE2C90F5A5
+Fft|fft Complex128 n=100	Complex128|100|1875815DCB7C86FB
+Fft|ifft Complex128 n=100	Complex128|100|5B23CBFDB29A3A6E
+Fft|fft Complex128 n=128	Complex128|128|A87318892DC71321
+Fft|ifft Complex128 n=128	Complex128|128|8B3E3017E0C0F67C
+Fft|fft Complex128 n=255	Complex128|255|7F5484BE13B8DED0
+Fft|ifft Complex128 n=255	Complex128|255|9CEDE418F62B1719
+Fft|fft Complex64 n=1	Complex64|1|71F6BFA4D494AE1B
+Fft|ifft Complex64 n=1	Complex64|1|71F6BFA4D494AE1B
+Fft|fft Complex64 n=2	Complex64|2|EE30133650F45D6E
+Fft|ifft Complex64 n=2	Complex64|2|1C196FFE8E0D6348
+Fft|fft Complex64 n=3	Complex64|3|A5D8D192E6065195
+Fft|ifft Complex64 n=3	Complex64|3|E9A4BE38C399B9F4
+Fft|fft Complex64 n=4	Complex64|4|0B0ABD34AE360D0D
+Fft|ifft Complex64 n=4	Complex64|4|CA98158AE394F0C4
+Fft|fft Complex64 n=5	Complex64|5|59AC78EA49459AB7
+Fft|ifft Complex64 n=5	Complex64|5|9B7653B89CBBE396
+Fft|fft Complex64 n=7	Complex64|7|F81B2BE3F4D2FB64
+Fft|ifft Complex64 n=7	Complex64|7|E7E301901BC25770
+Fft|fft Complex64 n=8	Complex64|8|78416CF7B9D70134
+Fft|ifft Complex64 n=8	Complex64|8|5B31E6D88AED49F4
+Fft|fft Complex64 n=12	Complex64|12|21A0762808DF0CAB
+Fft|ifft Complex64 n=12	Complex64|12|7D4C788D9CAA47C1
+Fft|fft Complex64 n=16	Complex64|16|4A04840C5E449426
+Fft|ifft Complex64 n=16	Complex64|16|FF7B4B0494F54EA5
+Fft|fft Complex64 n=17	Complex64|17|936A1B8D42E94242
+Fft|ifft Complex64 n=17	Complex64|17|D8D3A419A82BC62F
+Fft|fft Complex64 n=31	Complex64|31|53414675AE3D2330
+Fft|ifft Complex64 n=31	Complex64|31|8150F36F66B7F6EA
+Fft|fft Complex64 n=64	Complex64|64|94E4BD4E88546BC1
+Fft|ifft Complex64 n=64	Complex64|64|AC0503D41882F0A9
+Fft|fft Complex64 n=100	Complex64|100|5E847790F6E85422
+Fft|ifft Complex64 n=100	Complex64|100|3D48AF904485DA94
+Fft|fft Complex64 n=128	Complex64|128|64EB5147C3F26147
+Fft|ifft Complex64 n=128	Complex64|128|49A82BB4F3E729E9
+Fft|fft Complex64 n=255	Complex64|255|6EA65C7D7F451530
+Fft|ifft Complex64 n=255	Complex64|255|CBA85F79FC47BA52
+Fft|fft Bool n=1	Complex64|1|374708FFF7719DD5
+Fft|ifft Bool n=1	Complex64|1|374708FFF7719DD5
+Fft|rfft Bool n=1	Complex64|1|374708FFF7719DD5
+Fft|irfft Bool n=1	ERR|NDValueException|Invalid number of FFT data points (0) specified.
+Fft|fft Bool n=2	Complex64|2|F22632020555098D
+Fft|ifft Bool n=2	Complex64|2|900072DE45735A98
+Fft|rfft Bool n=2	Complex64|2|F22632020555098D
+Fft|irfft Bool n=2	Float32|2|DEEA3B24ADD66F9C
+Fft|fft Bool n=3	Complex64|3|1D979337417AF806
+Fft|ifft Bool n=3	Complex64|3|2BCDDD3600D3E240
+Fft|rfft Bool n=3	Complex64|2|CC058D00A9F58B68
+Fft|irfft Bool n=3	Float32|4|665BF0E67928A8E0
+Fft|fft Bool n=4	Complex64|4|06F604A1BCCCD2C9
+Fft|ifft Bool n=4	Complex64|4|5CD206E3100586AB
+Fft|rfft Bool n=4	Complex64|3|857A29A472A29E4E
+Fft|irfft Bool n=4	Float32|6|40D18EEFFAAF7164
+Fft|fft Bool n=5	Complex64|5|F951C70827F7DDCB
+Fft|ifft Bool n=5	Complex64|5|84DBC7D96BD389E2
+Fft|rfft Bool n=5	Complex64|3|4DCB92F79ACE89C3
+Fft|irfft Bool n=5	Float32|8|5A6101BC828FDAF6
+Fft|fft Bool n=7	Complex64|7|FCFB13A014B0CB74
+Fft|ifft Bool n=7	Complex64|7|0CB67FAEB8392C7D
+Fft|rfft Bool n=7	Complex64|4|AE238078535AE381
+Fft|irfft Bool n=7	Float32|12|7119D1001539D2AC
+Fft|fft Bool n=8	Complex64|8|0EBCC96590F2ECFF
+Fft|ifft Bool n=8	Complex64|8|AD2516583028E8CB
+Fft|rfft Bool n=8	Complex64|5|AAC085A81A90ED54
+Fft|irfft Bool n=8	Float32|14|CD1BF4728AFC532F
+Fft|fft Bool n=12	Complex64|12|67B9581DAF4F9EF6
+Fft|ifft Bool n=12	Complex64|12|0354EF1C319584E5
+Fft|rfft Bool n=12	Complex64|7|E74DAF003D4B52B8
+Fft|irfft Bool n=12	Float32|22|2B45433BCEF64324
+Fft|fft Bool n=16	Complex64|16|F86EB498C32E7AE3
+Fft|ifft Bool n=16	Complex64|16|F8A202FDD2BFE91F
+Fft|rfft Bool n=16	Complex64|9|5DB8D8E2D20AABEA
+Fft|irfft Bool n=16	Float32|30|319085E05987B0E9
+Fft|fft Bool n=17	Complex64|17|E15BC54E0E971B86
+Fft|ifft Bool n=17	Complex64|17|A798284E2CC6BFC6
+Fft|rfft Bool n=17	Complex64|9|D13419B370B8CCB6
+Fft|irfft Bool n=17	Float32|32|1C42C3DAD17B0DED
+Fft|fft Bool n=31	Complex64|31|323EA6A88E243F74
+Fft|ifft Bool n=31	Complex64|31|2F9541C816E354B4
+Fft|rfft Bool n=31	Complex64|16|446587F1060F49C0
+Fft|irfft Bool n=31	Float32|60|2C382951C2459FB2
+Fft|fft Bool n=64	Complex64|64|5D83E9199081DACC
+Fft|ifft Bool n=64	Complex64|64|F1BC0F2E437EC8C2
+Fft|rfft Bool n=64	Complex64|33|558D13770ACF27F2
+Fft|irfft Bool n=64	Float32|126|C7F0C1059872F9A0
+Fft|fft Bool n=100	Complex64|100|FAE194B4BDB39EEC
+Fft|ifft Bool n=100	Complex64|100|1F72E94129EB3622
+Fft|rfft Bool n=100	Complex64|51|3712C539A1AF06CF
+Fft|irfft Bool n=100	Float32|198|CD54DDB96F656EE0
+Fft|fft Bool n=128	Complex64|128|8E709AAA867D93B2
+Fft|ifft Bool n=128	Complex64|128|22E3DE0ECE4546C8
+Fft|rfft Bool n=128	Complex64|65|18E1AC2288ED2638
+Fft|irfft Bool n=128	Float32|254|28C8F0A12CE1D69B
+Fft|fft Bool n=255	Complex64|255|2C36CDD7F214A41F
+Fft|ifft Bool n=255	Complex64|255|FF161224B3A73CFD
+Fft|rfft Bool n=255	Complex64|128|5B769A2B181F457C
+Fft|irfft Bool n=255	Float32|508|CA1137766D4BCFC7
+Fft|fft Int32 n=1	Complex128|1|374708FFF7719DD5
+Fft|ifft Int32 n=1	Complex128|1|374708FFF7719DD5
+Fft|rfft Int32 n=1	Complex128|1|374708FFF7719DD5
+Fft|irfft Int32 n=1	ERR|NDValueException|Invalid number of FFT data points (0) specified.
+Fft|fft Int32 n=2	Complex128|2|370E8233A5DCDB14
+Fft|ifft Int32 n=2	Complex128|2|03D35C238FAE91BA
+Fft|rfft Int32 n=2	Complex128|2|370E8233A5DCDB14
+Fft|irfft Int32 n=2	Float64|2|5B149BC1F40F3455
+Fft|fft Int32 n=3	Complex128|3|4FD771FB5D8B19F3
+Fft|ifft Int32 n=3	Complex128|3|5466D632DE9EC042
+Fft|rfft Int32 n=3	Complex128|2|5C22CE14BB146B63
+Fft|irfft Int32 n=3	Float64|4|423EA43AA6A66365
+Fft|fft Int32 n=4	Complex128|4|A3D4C71C5DE6A742
+Fft|ifft Int32 n=4	Complex128|4|C4125008A67E7622
+Fft|rfft Int32 n=4	Complex128|3|AC1682AD49D65D7D
+Fft|irfft Int32 n=4	Float64|6|1C0ECD0B508BD3B7
+Fft|fft Int32 n=5	Complex128|5|BA44A28E98AC71A6
+Fft|ifft Int32 n=5	Complex128|5|A0A028F67869D906
+Fft|rfft Int32 n=5	Complex128|3|6EF53191D73EED58
+Fft|irfft Int32 n=5	Float64|8|027E27A31963E995
+Fft|fft Int32 n=7	Complex128|7|E489E17F1EAF4B6F
+Fft|ifft Int32 n=7	Complex128|7|192523289179C27B
+Fft|rfft Int32 n=7	Complex128|4|E60A7C42F27911A4
+Fft|irfft Int32 n=7	Float64|12|BEA2C631DF8FBEF8
+Fft|fft Int32 n=8	Complex128|8|AFBF773E7E721598
+Fft|ifft Int32 n=8	Complex128|8|F61F305DCE018797
+Fft|rfft Int32 n=8	Complex128|5|1F42501D7805CD19
+Fft|irfft Int32 n=8	Float64|14|84C4477497282412
+Fft|fft Int32 n=12	Complex128|12|D0FA161CEC62EF92
+Fft|ifft Int32 n=12	Complex128|12|3C0D529AD4231B9D
+Fft|rfft Int32 n=12	Complex128|7|282F78BA8815F560
+Fft|irfft Int32 n=12	Float64|22|ED32587A68661CBF
+Fft|fft Int32 n=16	Complex128|16|F7D931FDE21FF9B8
+Fft|ifft Int32 n=16	Complex128|16|6315C09661D2195D
+Fft|rfft Int32 n=16	Complex128|9|9CDE0EAF0BD9C71B
+Fft|irfft Int32 n=16	Float64|30|CAFE8715BDB8525D
+Fft|fft Int32 n=17	Complex128|17|3AB91DDC5B1D49B0
+Fft|ifft Int32 n=17	Complex128|17|DC2F1E38DB042EA1
+Fft|rfft Int32 n=17	Complex128|9|2C0E51AE54814B9C
+Fft|irfft Int32 n=17	Float64|32|07252A379EC978CE
+Fft|fft Int32 n=31	Complex128|31|02391F160049619B
+Fft|ifft Int32 n=31	Complex128|31|F83AD740BF34CEDF
+Fft|rfft Int32 n=31	Complex128|16|F8D50DB359CE8BBC
+Fft|irfft Int32 n=31	Float64|60|2C5ED4FB0D3E42D1
+Fft|fft Int32 n=64	Complex128|64|BCCE2575DF65EBFF
+Fft|ifft Int32 n=64	Complex128|64|E5602F9BEA0B17A2
+Fft|rfft Int32 n=64	Complex128|33|8D15E625C88EF126
+Fft|irfft Int32 n=64	Float64|126|4EBB16FEA3B21932
+Fft|fft Int32 n=100	Complex128|100|4A3B9A58F75081CE
+Fft|ifft Int32 n=100	Complex128|100|1F08BD3D0600FFC0
+Fft|rfft Int32 n=100	Complex128|51|5E2671893427D93A
+Fft|irfft Int32 n=100	Float64|198|EC68D9C39BCCAD74
+Fft|fft Int32 n=128	Complex128|128|0A57F444762747AD
+Fft|ifft Int32 n=128	Complex128|128|DC50C27E79531647
+Fft|rfft Int32 n=128	Complex128|65|85BEB1A42F36F05C
+Fft|irfft Int32 n=128	Float64|254|796F503D3CDB24AE
+Fft|fft Int32 n=255	Complex128|255|E8F96DCE5E7E1F6E
+Fft|ifft Int32 n=255	Complex128|255|D630F0014984A5E9
+Fft|rfft Int32 n=255	Complex128|128|987BFB7BB7500A13
+Fft|irfft Int32 n=255	Float64|508|67E0D863E8B98349
+Fft|fft Float64 n=1	Complex128|1|374708FFF7719DD5
+Fft|ifft Float64 n=1	Complex128|1|374708FFF7719DD5
+Fft|rfft Float64 n=1	Complex128|1|374708FFF7719DD5
+Fft|irfft Float64 n=1	ERR|NDValueException|Invalid number of FFT data points (0) specified.
+Fft|fft Float64 n=2	Complex128|2|0F726317FC0C0426
+Fft|ifft Float64 n=2	Complex128|2|8CE3FA5E28AF167D
+Fft|rfft Float64 n=2	Complex128|2|0F726317FC0C0426
+Fft|irfft Float64 n=2	Float64|2|E9E89553E8F2BD9F
+Fft|fft Float64 n=3	Complex128|3|F79C64F7B06B5A16
+Fft|ifft Float64 n=3	Complex128|3|FF876435E02410BD
+Fft|rfft Float64 n=3	Complex128|2|29723B6B8E3D947F
+Fft|irfft Float64 n=3	Float64|4|11A3237B72475E2D
+Fft|fft Float64 n=4	Complex128|4|55F6CE8D5AB4CE2D
+Fft|ifft Float64 n=4	Complex128|4|1E9F0BF752433155
+Fft|rfft Float64 n=4	Complex128|3|369401D95A4D6CF7
+Fft|irfft Float64 n=4	Float64|6|BF4EF4B15267D80B
+Fft|fft Float64 n=5	Complex128|5|A31D850AE35B86E9
+Fft|ifft Float64 n=5	Complex128|5|DBAFF5ECC031E9DF
+Fft|rfft Float64 n=5	Complex128|3|C2823EE3E29D52DF
+Fft|irfft Float64 n=5	Float64|8|73E733C43ECB7646
+Fft|fft Float64 n=7	Complex128|7|4B318AD6517CE168
+Fft|ifft Float64 n=7	Complex128|7|C94E7E9A3ED4D6DD
+Fft|rfft Float64 n=7	Complex128|4|55661C3BEE3AF501
+Fft|irfft Float64 n=7	Float64|12|28ADA7DEF701119A
+Fft|fft Float64 n=8	Complex128|8|FA848C8652AC7F12
+Fft|ifft Float64 n=8	Complex128|8|571E4F36EF4FB9CE
+Fft|rfft Float64 n=8	Complex128|5|8B24569CCD5B9E3C
+Fft|irfft Float64 n=8	Float64|14|47AC37B52517A6BC
+Fft|fft Float64 n=12	Complex128|12|C6289018A8901746
+Fft|ifft Float64 n=12	Complex128|12|CE1847961AECECC2
+Fft|rfft Float64 n=12	Complex128|7|096219D04CC5856F
+Fft|irfft Float64 n=12	Float64|22|AE2DC1A70ADAAC84
+Fft|fft Float64 n=16	Complex128|16|30E1568984B72111
+Fft|ifft Float64 n=16	Complex128|16|85ACC56B992F9D9E
+Fft|rfft Float64 n=16	Complex128|9|E2506AB991EE4A6A
+Fft|irfft Float64 n=16	Float64|30|0D8B8637FA19872B
+Fft|fft Float64 n=17	Complex128|17|D9B25AB2D59BDF8F
+Fft|ifft Float64 n=17	Complex128|17|B389D6E1C16F0250
+Fft|rfft Float64 n=17	Complex128|9|0106ED4193FB47BE
+Fft|irfft Float64 n=17	Float64|32|F4F75C506DEB7A76
+Fft|fft Float64 n=31	Complex128|31|8694C0FC854B7CED
+Fft|ifft Float64 n=31	Complex128|31|0DDA9D75BC3A7240
+Fft|rfft Float64 n=31	Complex128|16|E798892A246F43CB
+Fft|irfft Float64 n=31	Float64|60|B57771FEAF6A9060
+Fft|fft Float64 n=64	Complex128|64|786B5A4E07B5D62E
+Fft|ifft Float64 n=64	Complex128|64|D81649CD5BDCEEF7
+Fft|rfft Float64 n=64	Complex128|33|031007F4491073EA
+Fft|irfft Float64 n=64	Float64|126|7939E2C6A7AFAF3B
+Fft|fft Float64 n=100	Complex128|100|49EBEA5EA0CF1BC0
+Fft|ifft Float64 n=100	Complex128|100|D91A8E9992630483
+Fft|rfft Float64 n=100	Complex128|51|6E26727F15436738
+Fft|irfft Float64 n=100	Float64|198|588CB62C3474E895
+Fft|fft Float64 n=128	Complex128|128|269BC7179FD87247
+Fft|ifft Float64 n=128	Complex128|128|42036856FBFA1A17
+Fft|rfft Float64 n=128	Complex128|65|8A9B223BA9ED09B0
+Fft|irfft Float64 n=128	Float64|254|695CC545016D0391
+Fft|fft Float64 n=255	Complex128|255|282A8219E0A1D67C
+Fft|ifft Float64 n=255	Complex128|255|FE9A1D1ED7F3D408
+Fft|rfft Float64 n=255	Complex128|128|A9691A60A8E1CC68
+Fft|irfft Float64 n=255	Float64|508|CB3636A4C94E5429
+Fft|fft Float32 n=1	Complex64|1|374708FFF7719DD5
+Fft|ifft Float32 n=1	Complex64|1|374708FFF7719DD5
+Fft|rfft Float32 n=1	Complex64|1|374708FFF7719DD5
+Fft|irfft Float32 n=1	ERR|NDValueException|Invalid number of FFT data points (0) specified.
+Fft|fft Float32 n=2	Complex64|2|267E8C31709BCEDC
+Fft|ifft Float32 n=2	Complex64|2|8AF0D9AEF7AEB16A
+Fft|rfft Float32 n=2	Complex64|2|267E8C31709BCEDC
+Fft|irfft Float32 n=2	Float32|2|A71EC0C4115D8B7B
+Fft|fft Float32 n=3	Complex64|3|14D11A2371FA1CF0
+Fft|ifft Float32 n=3	Complex64|3|0A64A721A4D38AF4
+Fft|rfft Float32 n=3	Complex64|2|60D5ECB25AC7665E
+Fft|irfft Float32 n=3	Float32|4|4854590AB04B45B9
+Fft|fft Float32 n=4	Complex64|4|B859C45F01F8DEEC
+Fft|ifft Float32 n=4	Complex64|4|2A2531A25B717DF6
+Fft|rfft Float32 n=4	Complex64|3|BD63D11C3B537C04
+Fft|irfft Float32 n=4	Float32|6|02B653F92351330A
+Fft|fft Float32 n=5	Complex64|5|94902E1AD6318C95
+Fft|ifft Float32 n=5	Complex64|5|17205B0C2FA65C4E
+Fft|rfft Float32 n=5	Complex64|3|49A3EF519DD95C21
+Fft|irfft Float32 n=5	Float32|8|679BED47B70683F8
+Fft|fft Float32 n=7	Complex64|7|4D876FEA7BB197C5
+Fft|ifft Float32 n=7	Complex64|7|9A3E796302921BF3
+Fft|rfft Float32 n=7	Complex64|4|35C3B1A1C87C8AAB
+Fft|irfft Float32 n=7	Float32|12|71AB3928D0367109
+Fft|fft Float32 n=8	Complex64|8|2370F91FA57A14DB
+Fft|ifft Float32 n=8	Complex64|8|28DAA41C69357A7C
+Fft|rfft Float32 n=8	Complex64|5|59EAA05EA390351D
+Fft|irfft Float32 n=8	Float32|14|68C56FD6E7FD8C1A
+Fft|fft Float32 n=12	Complex64|12|096902E57D432CBB
+Fft|ifft Float32 n=12	Complex64|12|72F73DA46E8234B7
+Fft|rfft Float32 n=12	Complex64|7|4D40F6900041EF09
+Fft|irfft Float32 n=12	Float32|22|AA88E8868D2921DE
+Fft|fft Float32 n=16	Complex64|16|17A41E7C82E0D2B6
+Fft|ifft Float32 n=16	Complex64|16|E690704B180FE011
+Fft|rfft Float32 n=16	Complex64|9|07010A70CEC3B49B
+Fft|irfft Float32 n=16	Float32|30|A919D4E646936E48
+Fft|fft Float32 n=17	Complex64|17|D67485F87CFF38A7
+Fft|ifft Float32 n=17	Complex64|17|7ED207928D597341
+Fft|rfft Float32 n=17	Complex64|9|161ADA477E8C9323
+Fft|irfft Float32 n=17	Float32|32|CD4A7AF33BB8F6AF
+Fft|fft Float32 n=31	Complex64|31|8ABB286689BBF0AB
+Fft|ifft Float32 n=31	Complex64|31|A79B5489B4BB8BB2
+Fft|rfft Float32 n=31	Complex64|16|FBE6EA58C3C12CB8
+Fft|irfft Float32 n=31	Float32|60|EA2E5A494EF98161
+Fft|fft Float32 n=64	Complex64|64|72C1DA4583B8CC6F
+Fft|ifft Float32 n=64	Complex64|64|398295EF529C54C7
+Fft|rfft Float32 n=64	Complex64|33|CE9A727305EFA5B1
+Fft|irfft Float32 n=64	Float32|126|78191288F86FD3B1
+Fft|fft Float32 n=100	Complex64|100|0A569BCC78F292DF
+Fft|ifft Float32 n=100	Complex64|100|E41A7558F9F43CA1
+Fft|rfft Float32 n=100	Complex64|51|390EDBF6035DDCBB
+Fft|irfft Float32 n=100	Float32|198|01287CF8283F40FB
+Fft|fft Float32 n=128	Complex64|128|AFDB106F723F1B66
+Fft|ifft Float32 n=128	Complex64|128|C9125F8B8B35EFDD
+Fft|rfft Float32 n=128	Complex64|65|6AB8CEEDD3A30BAA
+Fft|irfft Float32 n=128	Float32|254|158EF897F40B9852
+Fft|fft Float32 n=255	Complex64|255|A66CDAEB650B37C6
+Fft|ifft Float32 n=255	Complex64|255|AD56177AD78AC636
+Fft|rfft Float32 n=255	Complex64|128|525FF5C4EC344791
+Fft|irfft Float32 n=255	Float32|508|6B25EBB9536ACD9D
