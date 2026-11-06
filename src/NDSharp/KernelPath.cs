@@ -270,6 +270,123 @@ public static class KernelPath
         return new NDArray(a.DType, values, new[] { q.Length }.Concat(outShape).ToArray());
     }
 
+    // ------------------------------------------------------------------ gradient, trapezoid, histogram
+
+    /// <summary>The elements of <paramref name="a"/> in C order, in place when it is already C-contiguous.</summary>
+    static T[] CContiguous<T>(NDArray a, out int offset) where T : unmanaged
+    {
+        var shape = (int[])a.Shape.Clone();
+        var strides = a.Strides;
+        var buffer = (T[])a.Buffer;
+        if (IsCContiguous(shape, strides)) { offset = a.Offset; return buffer; }
+        offset = 0;
+        int size = a.Size;
+        var copy = new T[size];
+        var idx = new int[shape.Length];
+        int pos = a.Offset;
+        for (int k = 0; k < size; k++)
+        {
+            copy[k] = buffer[pos];
+            for (int d = shape.Length - 1; d >= 0; d--)
+            {
+                idx[d]++; pos += strides[d];
+                if (idx[d] < shape[d]) break;
+                pos -= strides[d] * shape[d]; idx[d] = 0;
+            }
+        }
+        return copy;
+    }
+
+    /// <summary>Tries the kernels for <c>gradient</c> along <paramref name="axis"/> (normalised, at least two elements long) of a float32 or float64 array:
+    /// uniform spacing <paramref name="h"/>, or the sample positions <paramref name="x"/> (same dtype as <paramref name="f"/>, strictly one value per element).
+    /// The result is C-contiguous with the shape of <paramref name="f"/>.</summary>
+    internal static bool TryGradient(NDArray f, int axis, double h, NDArray? x, out NDArray result)
+    {
+        result = null!;
+        var scope = current.Value;
+        if (scope is { Enabled: false }) return false;
+        NDArray? r = f.DType switch
+        {
+            DType.Float32 => Gradient<float>(f, axis, h, x),
+            DType.Float64 => Gradient<double>(f, axis, h, x),
+            _ => null,
+        };
+        if (r is null) return false;
+        scope?.Count();
+        result = r;
+        return true;
+    }
+
+    static NDArray? Gradient<T>(NDArray f, int axis, double h, NDArray? x) where T : unmanaged, IFloatingPointIeee754<T>
+    {
+        if (x is not null && x.DType != f.DType) return null;   // mixed dtypes: numpy promotes; left to the general engine
+        var shape = (int[])f.Shape.Clone();
+        var buffer = CContiguous<T>(f, out int offset);
+        var lane = Lane.ForRowMajorAxis(shape, axis);
+        var values = new T[f.Size];
+        var src = Window(buffer, offset, lane);
+        if (x is null) Statistics.Gradient<T>(src, lane, T.CreateChecked(h), values);
+        else
+        {
+            var xs = CContiguous<T>(x, out int xo);
+            Statistics.Gradient<T>(src, lane, xs.AsSpan(xo, x.Size), values);
+        }
+        return new NDArray(f.DType, values, shape);
+    }
+
+    /// <summary>Tries the kernels for the trapezoidal rule along <paramref name="axis"/> (normalised) of a float32 or float64 array, with spacing
+    /// <paramref name="dx"/> or the positions <paramref name="x"/> (1-D, same dtype). The terms are added as NumPy adds them: pairwise only when the axis ends the shape.</summary>
+    internal static bool TryTrapezoid(NDArray y, int axis, double dx, NDArray? x, out NDArray result)
+    {
+        result = null!;
+        var scope = current.Value;
+        if (scope is { Enabled: false }) return false;
+        NDArray? r = y.DType switch
+        {
+            DType.Float32 => Trapezoid<float>(y, axis, dx, x),
+            DType.Float64 => Trapezoid<double>(y, axis, dx, x),
+            _ => null,
+        };
+        if (r is null) return false;
+        scope?.Count();
+        result = r;
+        return true;
+    }
+
+    static NDArray? Trapezoid<T>(NDArray y, int axis, double dx, NDArray? x) where T : unmanaged, IFloatingPointIeee754<T>
+    {
+        if (x is not null && x.DType != y.DType) return null;
+        var shape = (int[])y.Shape.Clone();
+        var buffer = CContiguous<T>(y, out int offset);
+        var lane = Lane.ForRowMajorAxis(shape, axis);
+        // NumPy forms the terms as a new C-contiguous array and sums it along the axis: pairwise only if the axis is the last non-trivial one.
+        var method = Product(shape, axis + 1, shape.Length) == 1 ? SumMethod.Pairwise : SumMethod.SequentialFromFirst;
+        var values = new T[lane.Count];
+        var src = Window(buffer, offset, lane);
+        if (x is null) Statistics.Trapezoid<T>(src, lane, T.CreateChecked(dx), values, method);
+        else
+        {
+            var xs = CContiguous<T>(x, out int xo);
+            Statistics.Trapezoid<T>(src, lane, xs.AsSpan(xo, x.Size), values, method);
+        }
+        return new NDArray(y.DType, values, Red.OutShape(shape, new[] { axis }, false));
+    }
+
+    /// <summary>Counts the finite-edge histogram of the elements of <paramref name="data"/> (any real dtype, as float64) in the bins given by <paramref name="edges"/>
+    /// (non-decreasing); the last bin is closed, as NumPy's. Values outside the edges and NaN are not counted.</summary>
+    internal static long[] Histogram(NDArray data, double[] edges)
+    {
+        var d = data.DType == DType.Float64 ? data : data.CastTo(DType.Float64);
+        var buffer = CContiguous<double>(d, out int offset);
+        var counts = new long[Math.Max(edges.Length - 1, 0)];
+        if (counts.Length > 0)
+            Statistics.Histogram<double>(buffer.AsSpan(offset, d.Size), Lane.Flat(d.Size), edges, counts, HistogramLastBin.ClosedInterval);
+        scopeCount();
+        return counts;
+    }
+
+    static void scopeCount() => current.Value?.Count();
+
     // ------------------------------------------------------------------ scans
 
     static NDArray Scan<T>(Op op, NDArray a, int? axis) where T : unmanaged, INumber<T>

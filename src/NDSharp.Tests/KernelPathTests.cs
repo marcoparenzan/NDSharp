@@ -29,6 +29,8 @@ public class KernelPathTests
         return NDArray.FromArray(d, shape).AsType(dtype);
     }
 
+    internal static void SameBitsPublic(NDArray expected, NDArray actual, string what) => SameBits(expected, actual, what);
+
     static void SameBits(NDArray expected, NDArray actual, string what)
     {
         Assert.True(expected.DType == actual.DType, $"{what}: dtype {expected.DType} vs {actual.DType}");

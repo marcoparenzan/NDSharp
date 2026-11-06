@@ -381,6 +381,7 @@ public static partial class np
             int a0 = ax[k];
             int n = f.Shape[a0];
             if (n < 2) throw new NDValueException("Shape of array too small to calculate a numerical gradient, at least (edge_order + 1) elements are required.");
+            if (KernelPath.TryGradient(ft, a0, dx, null, out var kernelGradient)) { result.Add(kernelGradient); continue; }
             NDArray Take(Slice s)
             {
                 var idx = Enumerable.Repeat<NDIndex>(Slice.All, f.Ndim).ToArray();
@@ -426,6 +427,7 @@ public static partial class np
                 result.Add(Gradient(f, new[] { Convert.ToDouble(dxs.Get(0).GetAt(0)) }, new[] { a0 })[0]);
                 continue;
             }
+            if (KernelPath.TryGradient(ft, a0, 0, x.DType.IsFloat() ? x : x.AsType(DType.Float64), out var kernelGradient)) { result.Add(kernelGradient); continue; }
             int[] Shape1(int len) { var s = Enumerable.Repeat(1, f.Ndim).ToArray(); s[a0] = len; return s; }
             NDArray Take(Slice s) { var idx = Enumerable.Repeat<NDIndex>(Slice.All, f.Ndim).ToArray(); idx[a0] = s; return ft.Get(idx); }
             var dx1 = Reshape(dxs.Get(new Slice(0, n - 2)), Shape1(n - 2));
