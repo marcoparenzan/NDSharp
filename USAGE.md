@@ -440,3 +440,6 @@ Namespace/package: `NDSharp.Wavelets`. Source: [Dwt.cs](src/NDSharp.Wavelets/Dwt
 | `Dwt.Dwt2D`, `Dwt.Idwt2D` | Two-dimensional decomposition/reconstruction; inspect source for coefficient tuple layout. |
 
 Supported extension modes include `zero`, `constant`, `symmetric`, `reflect`, `periodic`, `periodization`, `antisymmetric`, `antireflect`, and `smooth`. Boundary mode affects coefficients and lengths; for odd input lengths trim the reconstructed array to the original length when appropriate. The notebook validates an even-length Haar roundtrip, not every filter/mode combination.
+
+### 3-D Geometry dependency
+Source builds require sibling MathemaSharp.Geometry. Existing Plot3D.Project and artist public APIs stay unchanged; no updated package published.

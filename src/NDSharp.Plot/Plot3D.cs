@@ -93,7 +93,8 @@ public sealed class Scatter3D : Artist3D, IMappable
 
     public override void Draw(DrawContext c)
     {
-        var order = Enumerable.Range(0, X.Length).Select(i => (i, d: Plot3D.Project(c.Axes, X[i], Y[i], Z[i]))).OrderByDescending(t => t.d.depth);
+        var order = MathemaSharp.Geometry.DepthOrdering.BackToFront(
+            Enumerable.Range(0, X.Length).Select(i => (i, d: Plot3D.Project(c.Axes, X[i], Y[i], Z[i]))), t => t.d.depth);
         foreach (var (i, d) in order)
         {
             var col = WithAlpha(ColorAt(i), Alpha);
@@ -120,7 +121,8 @@ public sealed class Poly3D : Artist3D
 
     public override void Draw(DrawContext c)
     {
-        foreach (var poly in Polygons.OrderByDescending(p => p.Average(v => Plot3D.Project(c.Axes, v[0], v[1], v[2]).depth)))
+        foreach (var poly in MathemaSharp.Geometry.DepthOrdering.BackToFront(Polygons,
+            p => MathemaSharp.Geometry.DepthOrdering.Average(p.Select(v => Plot3D.Project(c.Axes,v[0],v[1],v[2]).depth))))
         {
             using var path = new SKPath();
             for (int i = 0; i < poly.Length; i++)
@@ -171,9 +173,6 @@ public sealed class Text3D : Artist3D
 /// then a uniform fit of the projected unit box into the axes rectangle.</summary>
 public static class Plot3D
 {
-    private const double AspectScale = 1.8294640721620434;
-    private static readonly double[] Box = { 4, 4, 3 };
-
     public static (double x0, double x1) Lim(Axes ax, int i) => i switch
     {
         0 => ax.ViewX(),
@@ -181,80 +180,11 @@ public static class Plot3D
         _ => ax.ViewZ(),
     };
 
-    private static double[,] Matrix(Axes ax, out double[] eye)
-    {
-        double n = Math.Sqrt(Box.Sum(b => b * b));
-        var asp = Box.Select(b => b / n * AspectScale).ToArray();
-        var R = asp.Select(v => v * 0.5).ToArray();
-        double el = ax.View.Elev * Math.PI / 180, az = ax.View.Azim * Math.PI / 180;
-        var ps = new[] { Math.Cos(el) * Math.Cos(az), Math.Cos(el) * Math.Sin(az), Math.Sin(el) };
-        eye = new[] { R[0] + 10 * ps[0], R[1] + 10 * ps[1], R[2] + 10 * ps[2] };
-        var w = Norm(new[] { eye[0] - R[0], eye[1] - R[1], eye[2] - R[2] });
-        var u = Norm(Cross(new[] { 0.0, 0, 1 }, w));
-        var v = Cross(w, u);
-        var view = new double[,]
-        {
-            { u[0], u[1], u[2], -Dot(u, eye) },
-            { v[0], v[1], v[2], -Dot(v, eye) },
-            { w[0], w[1], w[2], -Dot(w, eye) },
-            { 0, 0, 0, 1 },
-        };
-        var proj = new double[,] { { 1, 0, 0, 0 }, { 0, 1, 0, 0 }, { 0, 0, 0, -10 }, { 0, 0, -1, 0 } };
-        var world = new double[4, 4];
-        for (int i = 0; i < 3; i++)
-        {
-            var (lo, hi) = Lim(ax, i);
-            world[i, i] = asp[i] / (hi - lo);
-            world[i, 3] = -lo * asp[i] / (hi - lo);
-        }
-        world[3, 3] = 1;
-        return Mul(Mul(proj, view), world);
-    }
-
-    private static double[,] Mul(double[,] a, double[,] b)
-    {
-        var r = new double[4, 4];
-        for (int i = 0; i < 4; i++) for (int j = 0; j < 4; j++) for (int k = 0; k < 4; k++) r[i, j] += a[i, k] * b[k, j];
-        return r;
-    }
-
-    private static double[] Cross(double[] a, double[] b) => new[] { a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0] };
-    private static double Dot(double[] a, double[] b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
-    private static double[] Norm(double[] a) { double l = Math.Sqrt(Dot(a, a)); return new[] { a[0] / l, a[1] / l, a[2] / l }; }
-
-    // projected unit-box extent, cached per call through the axes
-    private static (double cx, double cy, double scale) Fit(Axes ax)
-    {
-        var m = Matrix(ax, out _);
-        double minx = double.MaxValue, maxx = double.MinValue, miny = double.MaxValue, maxy = double.MinValue;
-        for (int k = 0; k < 8; k++)
-        {
-            double[] p = new double[3];
-            for (int i = 0; i < 3; i++) { var (lo, hi) = Lim(ax, i); p[i] = (k >> i & 1) == 0 ? lo : hi; }
-            var (x, y, _) = Apply(m, p[0], p[1], p[2]);
-            minx = Math.Min(minx, x); maxx = Math.Max(maxx, x); miny = Math.Min(miny, y); maxy = Math.Max(maxy, y);
-        }
-        var box = ax.Box;
-        // matplotlib keeps the projected box inside a square view (±~0.8 of the half side) — fit the same way
-        double scale = 0.86 * Math.Min(box.Width / (maxx - minx), box.Height / (maxy - miny));
-        return ((minx + maxx) / 2, (miny + maxy) / 2, scale);
-    }
-
-    private static (double x, double y, double depth) Apply(double[,] m, double x, double y, double z)
-    {
-        double[] v = { x, y, z, 1 };
-        var o = new double[4];
-        for (int i = 0; i < 4; i++) o[i] = m[i, 0] * v[0] + m[i, 1] * v[1] + m[i, 2] * v[2] + m[i, 3];
-        return (o[0] / o[3], o[1] / o[3], o[2] / o[3]);
-    }
-
     public static (double x, double y, double depth) Project(Axes ax, double x, double y, double z)
     {
-        var m = Matrix(ax, out _);
-        var (px, py, d) = Apply(m, x, y, z);
-        var (cx, cy, s) = Fit(ax);
         var box = ax.Box;
-        return (box.MidX + (px - cx) * s, box.MidY - (py - cy) * s, d);
+        return MathemaSharp.Geometry.Camera<double>.Project(Lim(ax,0),Lim(ax,1),Lim(ax,2),
+            ax.View.Elev,ax.View.Azim,box.Width,box.Height,box.MidX,box.MidY,x,y,z);
     }
 
     // ---------------------------------------------------------------------------------------------- the axes frame
