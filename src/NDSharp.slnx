@@ -14,5 +14,7 @@
   <Project Path="NDSharp.Wavelets/NDSharp.Wavelets.csproj" />
   <Project Path="NDSharp.Mathema/NDSharp.Mathema.csproj" />
   <Project Path="NDSharp.Mathema.Tests/NDSharp.Mathema.Tests.csproj" />
+  <Project Path="NDSharp.JupyterSharp.Kernel/NDSharp.JupyterSharp.Kernel.csproj" />
+  <Project Path="NDSharp.JupyterSharp.Kernel.Tests/NDSharp.JupyterSharp.Kernel.Tests.csproj" />
 </Solution>
 

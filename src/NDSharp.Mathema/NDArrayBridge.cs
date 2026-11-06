@@ -40,6 +40,28 @@ public static class NDArrayBridge
         return result;
     }
 
+    /// <summary>1-D complex array (complex64 or complex128) → Complex&lt;T&gt;[] for any IEEE Generic Math format (copy). NDSharp stores both complex dtypes with
+    /// double parts, so a T narrower than double rounds and a T wider than double (Decimal128 is not IEEE here) only receives double precision.</summary>
+    public static Complex<T>[] ToComplexVector<T>(this NDArray array) where T : IFloatingPointIeee754<T>, IMinMaxValue<T>
+    {
+        ArgumentNullException.ThrowIfNull(array);
+        if (array.Ndim != 1) throw new ArgumentException("Atteso un array 1-D.", nameof(array));
+        if (!array.DType.IsComplex()) throw new NotSupportedException($"Complex conversion needs a complex dtype, not {array.DType}.");
+        var source = array.ToArray<Complex>();
+        var result = new Complex<T>[source.Length];
+        for (var i = 0; i < source.Length; i++) result[i] = new Complex<T>(T.CreateChecked(source[i].Real), T.CreateChecked(source[i].Imaginary));
+        return result;
+    }
+
+    /// <summary>Complex&lt;T&gt;[] → complex128 NDArray (copy; the parts go through double).</summary>
+    public static NDArray ToNDArray<T>(this Complex<T>[] values) where T : IFloatingPointIeee754<T>, IMinMaxValue<T>
+    {
+        ArgumentNullException.ThrowIfNull(values);
+        var buffer = new Complex[values.Length];
+        for (var i = 0; i < values.Length; i++) buffer[i] = new Complex(double.CreateChecked(values[i].Real), double.CreateChecked(values[i].Imaginary));
+        return NDArray.FromArray(buffer);
+    }
+
     /// <summary>1-D array → T[] with Generic Math (copy from the native dtype, checked conversion without double intermediates).</summary>
     public static T[] ToVector<T>(this NDArray array) where T : INumber<T>
     {
@@ -81,6 +103,7 @@ public static class NDArrayBridge
         where TSource : unmanaged, INumberBase<TSource> where T : INumber<T>
     {
         var source = array.ToArray<TSource>();
+        if (typeof(TSource) == typeof(T)) return (T[])(object)source;   // same type: ToArray already copied, no second pass
         var result = new T[source.Length];
         for (var i = 0; i < source.Length; i++) result[i] = T.CreateChecked(source[i]);
         return result;

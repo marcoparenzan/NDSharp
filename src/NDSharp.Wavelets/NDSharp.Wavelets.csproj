@@ -18,5 +18,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\NDSharp\NDSharp.csproj" />
+    <ProjectReference Include="../../../MathemaSharp/src/libs/MathemaSharp.Kernels/MathemaSharp.Kernels.csproj" />
   </ItemGroup>
 </Project>

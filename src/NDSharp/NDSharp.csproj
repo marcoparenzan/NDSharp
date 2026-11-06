@@ -22,5 +22,6 @@
   <ItemGroup>
     <!-- The only reference NDSharp has: the BCL-only lane kernels. They answer the plain float64 reductions (KernelPath); the general engine answers the rest. -->
     <ProjectReference Include="../../../MathemaSharp/src/libs/MathemaSharp.Kernels/MathemaSharp.Kernels.csproj" />
+    <ProjectReference Include="../../../MathemaSharp/src/libs/MathemaSharp.LinearAlgebra/MathemaSharp.LinearAlgebra.csproj" />
   </ItemGroup>
 </Project>

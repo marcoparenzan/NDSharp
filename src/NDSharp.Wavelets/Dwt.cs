@@ -3,161 +3,51 @@
 // Licensed under the MIT License. See the LICENSE file in the project
 // root for full license information.
 
+using MathemaSharp.Kernels;
+
 namespace NDSharp.Wavelets;
 
-/// <summary>A discrete wavelet's filter bank (pywt.Wavelet).</summary>
+/// <summary>A discrete wavelet's filter bank (pywt.Wavelet). The tables live in MathemaSharp.Kernels (<see cref="WaveletFilterBank"/>).</summary>
 public sealed class Wavelet
 {
-    public string Name { get; }
-    public double[] DecLo { get; }
-    public double[] DecHi { get; }
-    public double[] RecLo { get; }
-    public double[] RecHi { get; }
-    public bool Orthogonal { get; }
-    public int FilterLength => DecLo.Length;
+    internal WaveletFilterBank Bank { get; }
+    public string Name => Bank.Name;
+    public double[] DecLo => Bank.DecLo;
+    public double[] DecHi => Bank.DecHi;
+    public double[] RecLo => Bank.RecLo;
+    public double[] RecHi => Bank.RecHi;
+    public bool Orthogonal => Bank.Orthogonal;
+    public int FilterLength => Bank.FilterLength;
 
-    private Wavelet(string name, double[] dl, double[] dh, double[] rl, double[] rh, bool orth)
-        => (Name, DecLo, DecHi, RecLo, RecHi, Orthogonal) = (name, dl, dh, rl, rh, orth);
+    private Wavelet(WaveletFilterBank bank) => Bank = bank;
 
-    public static IReadOnlyList<string> Names => WaveletFilters.All.Select(w => w.Name).ToList();
+    public static IReadOnlyList<string> Names => WaveletFilterBank.Names;
 
     public static Wavelet Get(string name)
-    {
-        foreach (var w in WaveletFilters.All)
-            if (w.Name == name) return new Wavelet(w.Name, w.DecLo, w.DecHi, w.RecLo, w.RecHi, w.Orthogonal);
-        throw new NDValueException($"Unknown wavelet name '{name}', check wavelist() for the list of available builtin wavelets.");
-    }
+        => WaveletFilterBank.TryGet(name, out var bank)
+            ? new Wavelet(bank)
+            : throw new NDValueException($"Unknown wavelet name '{name}', check wavelist() for the list of available builtin wavelets.");
 }
 
-/// <summary>pywt.dwt / idwt / dwt2 / idwt2 — a port of PyWavelets' convolution-based transforms (same extension
-/// modes, same output lengths), computed in double precision.</summary>
+/// <summary>pywt.dwt / idwt / dwt2 / idwt2 on NDSharp arrays. The transform of one line is <see cref="WaveletTransform"/> in MathemaSharp.Kernels
+/// (a port of PyWavelets' convolution-based transforms, same extension modes, same output lengths, computed in double precision);
+/// this class applies it along an axis and converts the argument errors to <see cref="NDValueException"/>.</summary>
 public static class Dwt
 {
-    public static int CoeffLength(int inputLen, int filterLen, string mode)
-        => mode == "periodization" ? (inputLen + 1) / 2 : (inputLen + filterLen - 1) / 2;
-
-    private static int Mod(int a, int n) => ((a % n) + n) % n;
-
-    /// <summary>Value of the signal extended beyond its ends according to a PyWavelets mode.</summary>
-    private static double Ext(double[] x, int i, string mode)
-    {
-        int n = x.Length;
-        if (i >= 0 && i < n) return x[i];
-        switch (mode)
-        {
-            case "zero": return 0.0;
-            case "constant": return i < 0 ? x[0] : x[n - 1];
-            case "symmetric":
-            {
-                int m = Mod(i, 2 * n);
-                return m < n ? x[m] : x[2 * n - 1 - m];
-            }
-            case "reflect":
-            {
-                if (n == 1) return x[0];
-                int m = Mod(i, 2 * n - 2);
-                return m < n ? x[m] : x[2 * n - 2 - m];
-            }
-            case "periodic": return x[Mod(i, n)];
-            case "antisymmetric":
-            {
-                int q = (int)Math.Floor((double)i / n);
-                int r = i - q * n;
-                double v = (q & 1) == 0 ? x[r] : x[n - 1 - r];
-                return (q & 1) == 0 ? v : -v;
-            }
-            case "antireflect":
-                return i < 0 ? 2 * x[0] - Ext(x, -i, mode) : 2 * x[n - 1] - Ext(x, 2 * (n - 1) - i, mode);
-            case "smooth":
-                if (n == 1) return x[0];
-                return i < 0 ? x[0] + i * (x[1] - x[0]) : x[n - 1] + (i - (n - 1)) * (x[n - 1] - x[n - 2]);
-            default:
-                throw new NDValueException($"Unknown mode '{mode}'");
-        }
-    }
+    public static int CoeffLength(int inputLen, int filterLen, string mode) => WaveletTransform.CoeffLength(inputLen, filterLen, mode);
 
     /// <summary>One level of the 1-D transform of a signal: (approximation, detail).</summary>
     public static (double[] cA, double[] cD) Dwt1D(double[] x, Wavelet w, string mode = "symmetric")
     {
-        int f = w.FilterLength, n = x.Length;
-        if (n < 1) throw new NDValueException("Invalid input data length");
-        int outLen = CoeffLength(n, f, mode);
-        var a = new double[outLen];
-        var d = new double[outLen];
-        if (mode == "periodization")
-        {
-            var xe = n % 2 == 1 ? x.Append(x[^1]).ToArray() : x;
-            int ne = xe.Length;
-            for (int k = 0; k < outLen; k++)
-            {
-                double sa = 0, sd = 0;
-                for (int j = 0; j < f; j++)
-                {
-                    double v = xe[Mod(2 * k + f / 2 - j, ne)];
-                    sa += w.DecLo[j] * v;
-                    sd += w.DecHi[j] * v;
-                }
-                a[k] = sa; d[k] = sd;
-            }
-            return (a, d);
-        }
-        for (int k = 0; k < outLen; k++)
-        {
-            double sa = 0, sd = 0;
-            for (int j = 0; j < f; j++)
-            {
-                double v = Ext(x, 2 * k + 1 - j, mode);
-                sa += w.DecLo[j] * v;
-                sd += w.DecHi[j] * v;
-            }
-            a[k] = sa; d[k] = sd;
-        }
-        return (a, d);
+        try { return WaveletTransform.Dwt(x, w.Bank, mode); }
+        catch (ArgumentException e) { throw new NDValueException(e.Message); }
     }
 
     /// <summary>Inverse of <see cref="Dwt1D"/>; either coefficient array may be null (treated as zero).</summary>
     public static double[] Idwt1D(double[]? cA, double[]? cD, Wavelet w, string mode = "symmetric")
     {
-        if (cA is null && cD is null) throw new NDValueException("At least one coefficient parameter must be specified.");
-        int m = (cA ?? cD)!.Length;
-        if (cA is not null && cD is not null && cA.Length != cD.Length)
-            throw new NDValueException("Coefficient arrays must have the same length");
-        int f = w.FilterLength;
-        if (mode == "periodization")
-        {
-            var outp = new double[2 * m];
-            for (int i = 0; i < 2 * m; i++)
-            {
-                double s = 0;
-                for (int k = 0; k < m; k++)
-                {
-                    // A filter longer than the signal wraps around more than once: sum every aliased tap.
-                    for (int j = Mod(i - 2 * k + f / 2 - 1, 2 * m); j < f; j += 2 * m)
-                    {
-                        if (cA is not null) s += cA[k] * w.RecLo[j];
-                        if (cD is not null) s += cD[k] * w.RecHi[j];
-                    }
-                }
-                outp[i] = s;
-            }
-            return outp;
-        }
-        int len = 2 * m - f + 2;
-        if (len < 1) throw new NDValueException("Coefficient arrays are too short for this wavelet");
-        var y = new double[len];
-        for (int i = 0; i < len; i++)
-        {
-            double s = 0;
-            for (int k = 0; k < m; k++)
-            {
-                int j = i + f - 2 - 2 * k;
-                if (j < 0 || j >= f) continue;
-                if (cA is not null) s += cA[k] * w.RecLo[j];
-                if (cD is not null) s += cD[k] * w.RecHi[j];
-            }
-            y[i] = s;
-        }
-        return y;
+        try { return WaveletTransform.Idwt(cA, cD, w.Bank, mode); }
+        catch (ArgumentException e) { throw new NDValueException(e.Message); }
     }
 
     // ------------------------------------------------------------------ N-d helpers

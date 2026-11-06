@@ -3,6 +3,8 @@
 // Licensed under the MIT License. See the LICENSE file in the project
 // root for full license information.
 
+using MathemaSharp.LinearAlgebra;
+
 namespace NDSharp;
 
 /// <summary><c>numpy.linalg</c>: dense solvers and decompositions. All maths is done in double and the
@@ -49,59 +51,6 @@ public static partial class np
         return dt == DType.Float64 ? arr : arr.AsType(dt);
     }
 
-    /// <summary>LU with partial pivoting (LAPACK dgetf2 order). Returns the pivot rows and whether the matrix is singular.</summary>
-    private static bool Lu(double[] a, int n, int[] piv)
-    {
-        bool singular = false;
-        for (int j = 0; j < n; j++)
-        {
-            int p = j;
-            double max = Math.Abs(a[j * n + j]);
-            for (int i = j + 1; i < n; i++)
-                if (Math.Abs(a[i * n + j]) > max) { max = Math.Abs(a[i * n + j]); p = i; }
-            piv[j] = p;
-            if (a[p * n + j] != 0)
-            {
-                if (p != j)
-                    for (int k = 0; k < n; k++) (a[j * n + k], a[p * n + k]) = (a[p * n + k], a[j * n + k]);
-                double pivot = a[j * n + j];
-                for (int i = j + 1; i < n; i++) a[i * n + j] /= pivot;
-            }
-            else singular = true;
-            for (int i = j + 1; i < n; i++)
-            {
-                double l = a[i * n + j];
-                if (l != 0)
-                    for (int k = j + 1; k < n; k++) a[i * n + k] -= l * a[j * n + k];
-            }
-        }
-        return singular;
-    }
-
-    /// <summary>Solves with an LU factorization in place on <paramref name="b"/> (n × m, row-major).</summary>
-    private static void LuSolve(double[] lu, int n, int[] piv, double[] b, int m)
-    {
-        for (int j = 0; j < n; j++)
-            if (piv[j] != j)
-                for (int k = 0; k < m; k++) (b[j * m + k], b[piv[j] * m + k]) = (b[piv[j] * m + k], b[j * m + k]);
-        for (int i = 0; i < n; i++)
-            for (int k = 0; k < i; k++)
-            {
-                double l = lu[i * n + k];
-                if (l != 0) for (int c = 0; c < m; c++) b[i * m + c] -= l * b[k * m + c];
-            }
-        for (int i = n - 1; i >= 0; i--)
-        {
-            for (int k = i + 1; k < n; k++)
-            {
-                double u = lu[i * n + k];
-                if (u != 0) for (int c = 0; c < m; c++) b[i * m + c] -= u * b[k * m + c];
-            }
-            double d = lu[i * n + i];
-            for (int c = 0; c < m; c++) b[i * m + c] /= d;
-        }
-    }
-
     public static NDArray Inv(NDArray a)
     {
         RequireSquareStack(a, "inv");
@@ -112,10 +61,10 @@ public static partial class np
         {
             var lu = (double[])mats[t].Clone();
             var piv = new int[n];
-            if (Lu(lu, n, piv)) throw new NDLinAlgException("Singular matrix");
+            if (DenseLinearAlgebra.Lu(lu, n, piv)) throw new NDLinAlgException("Singular matrix");
             var inv = new double[n * n];
             for (int i = 0; i < n; i++) inv[i * n + i] = 1.0;
-            LuSolve(lu, n, piv, inv, n);
+            DenseLinearAlgebra.LuSolve(lu, n, piv, inv, n);
             result[t] = inv;
         }
         return FromMatrices(result, batch, n, n, dt);
@@ -142,10 +91,10 @@ public static partial class np
             var lu = new double[n * n];
             Array.Copy(aFull, t * n * n, lu, 0, n * n);
             var piv = new int[n];
-            if (Lu(lu, n, piv)) throw new NDLinAlgException("Singular matrix");
+            if (DenseLinearAlgebra.Lu(lu, n, piv)) throw new NDLinAlgException("Singular matrix");
             var rhs = new double[n * k];
             Array.Copy(bFull, t * n * k, rhs, 0, n * k);
-            LuSolve(lu, n, piv, rhs, k);
+            DenseLinearAlgebra.LuSolve(lu, n, piv, rhs, k);
             Array.Copy(rhs, 0, bFull, t * n * k, n * k);
         }
         var res = new NDArray(DType.Float64, bFull, batchShape.Concat(new[] { n, k }).ToArray());
@@ -163,21 +112,7 @@ public static partial class np
         var logs = new double[mats.Length];
         for (int t = 0; t < mats.Length; t++)
         {
-            var lu = (double[])mats[t].Clone();
-            var piv = new int[n];
-            bool singular = Lu(lu, n, piv);
-            if (singular) { signs[t] = 0; logs[t] = double.NegativeInfinity; continue; }
-            int changes = 0;
-            for (int i = 0; i < n; i++) if (piv[i] != i) changes++;
-            double sign = changes % 2 == 1 ? -1.0 : 1.0, acc = 0;
-            for (int i = 0; i < n; i++)
-            {
-                double e = lu[i * n + i];
-                if (e < 0) { sign = -sign; e = -e; }
-                acc += Math.Log(e);
-            }
-            signs[t] = sign;
-            logs[t] = acc;
+            (signs[t], logs[t]) = DenseLinearAlgebra.SignAndLogDeterminant(mats[t], n);
         }
         return (new NDArray(dt == DType.Float64 ? DType.Float64 : dt, dt == DType.Float64 ? signs : signs.Select(x => (float)x).ToArray(), (int[])batch.Clone()),
                 new NDArray(dt == DType.Float64 ? DType.Float64 : dt, dt == DType.Float64 ? logs : logs.Select(x => (float)x).ToArray(), (int[])batch.Clone()));
@@ -190,64 +125,6 @@ public static partial class np
         var dt = sign.DType;
         var d = Multiply(sign, Exp(logdet));
         return d.DType == dt ? d : d.AsType(dt);
-    }
-
-    // ================================================================ Jacobi decompositions
-
-    /// <summary>Symmetric eigendecomposition by cyclic Jacobi rotations: ascending eigenvalues, orthonormal
-    /// column eigenvectors. (LAPACK's eigenvector signs are an implementation detail we do not reproduce.)</summary>
-    private static (double[] w, double[] v) JacobiEigh(double[] a, int n)
-    {
-        var m = (double[])a.Clone();
-        var v = new double[n * n];
-        for (int i = 0; i < n; i++) v[i * n + i] = 1.0;
-        for (int sweep = 0; sweep < 100; sweep++)
-        {
-            double off = 0;
-            for (int i = 0; i < n; i++)
-                for (int j = i + 1; j < n; j++) off += m[i * n + j] * m[i * n + j];
-            if (off < 1e-300) break;
-            for (int p = 0; p < n - 1; p++)
-                for (int q = p + 1; q < n; q++)
-                {
-                    double apq = m[p * n + q];
-                    if (Math.Abs(apq) < 1e-300) continue;
-                    double theta = (m[q * n + q] - m[p * n + p]) / (2 * apq);
-                    double t = Math.Sign(theta == 0 ? 1 : theta) / (Math.Abs(theta) + Math.Sqrt(theta * theta + 1));
-                    double c = 1 / Math.Sqrt(t * t + 1), s = t * c;
-                    for (int k = 0; k < n; k++)
-                    {
-                        double akp = m[k * n + p], akq = m[k * n + q];
-                        m[k * n + p] = c * akp - s * akq;
-                        m[k * n + q] = s * akp + c * akq;
-                    }
-                    for (int k = 0; k < n; k++)
-                    {
-                        double apk = m[p * n + k], aqk = m[q * n + k];
-                        m[p * n + k] = c * apk - s * aqk;
-                        m[q * n + k] = s * apk + c * aqk;
-                    }
-                    for (int k = 0; k < n; k++)
-                    {
-                        double vkp = v[k * n + p], vkq = v[k * n + q];
-                        v[k * n + p] = c * vkp - s * vkq;
-                        v[k * n + q] = s * vkp + c * vkq;
-                    }
-                }
-        }
-        var order = Enumerable.Range(0, n).OrderBy(i => m[i * n + i]).ToArray();
-        var w = order.Select(i => m[i * n + i]).ToArray();
-        var vs = new double[n * n];
-        for (int j = 0; j < n; j++)
-        {
-            int src = order[j];
-            // Sign convention: the component of largest magnitude is positive.
-            int big = 0;
-            for (int i = 1; i < n; i++) if (Math.Abs(v[i * n + src]) > Math.Abs(v[big * n + src]) + 1e-12) big = i;
-            double sgn = v[big * n + src] < 0 ? -1 : 1;
-            for (int i = 0; i < n; i++) vs[i * n + j] = sgn * v[i * n + src];
-        }
-        return (w, vs);
     }
 
     /// <summary>numpy <c>linalg.eigh</c> (lower triangle is used, as numpy's default UPLO='L').</summary>
@@ -263,7 +140,7 @@ public static partial class np
             var sym = (double[])mats[t].Clone();
             for (int i = 0; i < n; i++)
                 for (int j = i + 1; j < n; j++) sym[i * n + j] = sym[j * n + i]; // mirror the lower triangle
-            (ws[t], vs[t]) = JacobiEigh(sym, n);
+            (ws[t], vs[t]) = DenseLinearAlgebra.SymmetricEigen(sym, n);
         }
         var w = FromMatrices(ws, batch, 1, n, dt);
         w = Reshape(w, batch.Concat(new[] { n }).ToArray());
@@ -271,92 +148,6 @@ public static partial class np
     }
 
     public static NDArray EigvalsH(NDArray a) => Eigh(a).w;
-
-    /// <summary>Thin SVD of an m×n matrix (m ≥ n) by one-sided Jacobi; returns U (m×n), s (n), V (n×n), singular values descending.</summary>
-    private static (double[] u, double[] s, double[] v) JacobiSvd(double[] a, int m, int n)
-    {
-        var u = (double[])a.Clone();
-        var v = new double[n * n];
-        for (int i = 0; i < n; i++) v[i * n + i] = 1.0;
-        for (int sweep = 0; sweep < 60; sweep++)
-        {
-            bool rotated = false;
-            for (int p = 0; p < n - 1; p++)
-                for (int q = p + 1; q < n; q++)
-                {
-                    double alpha = 0, beta = 0, gamma = 0;
-                    for (int i = 0; i < m; i++)
-                    {
-                        alpha += u[i * n + p] * u[i * n + p];
-                        beta += u[i * n + q] * u[i * n + q];
-                        gamma += u[i * n + p] * u[i * n + q];
-                    }
-                    if (Math.Abs(gamma) <= 1e-15 * Math.Sqrt(alpha * beta) || gamma == 0) continue;
-                    rotated = true;
-                    double zeta = (beta - alpha) / (2 * gamma);
-                    double t = Math.Sign(zeta == 0 ? 1 : zeta) / (Math.Abs(zeta) + Math.Sqrt(1 + zeta * zeta));
-                    double c = 1 / Math.Sqrt(1 + t * t), s = c * t;
-                    for (int i = 0; i < m; i++)
-                    {
-                        double up = u[i * n + p], uq = u[i * n + q];
-                        u[i * n + p] = c * up - s * uq;
-                        u[i * n + q] = s * up + c * uq;
-                    }
-                    for (int i = 0; i < n; i++)
-                    {
-                        double vp = v[i * n + p], vq = v[i * n + q];
-                        v[i * n + p] = c * vp - s * vq;
-                        v[i * n + q] = s * vp + c * vq;
-                    }
-                }
-            if (!rotated) break;
-        }
-        var sv = new double[n];
-        for (int j = 0; j < n; j++)
-        {
-            double norm = 0;
-            for (int i = 0; i < m; i++) norm += u[i * n + j] * u[i * n + j];
-            sv[j] = Math.Sqrt(norm);
-        }
-        var order = Enumerable.Range(0, n).OrderByDescending(j => sv[j]).ToArray();
-        var us = new double[m * n];
-        var vsorted = new double[n * n];
-        var ss = new double[n];
-        for (int jj = 0; jj < n; jj++)
-        {
-            int j = order[jj];
-            ss[jj] = sv[j];
-            for (int i = 0; i < m; i++) us[i * n + jj] = sv[j] > 0 ? u[i * n + j] / sv[j] : 0;
-            for (int i = 0; i < n; i++) vsorted[i * n + jj] = v[i * n + j];
-        }
-        return (us, ss, vsorted);
-    }
-
-    /// <summary>Completes the orthonormal columns of <paramref name="u"/> (rows×have) to a full rows×rows orthogonal matrix.</summary>
-    private static double[] CompleteBasis(double[] u, int rows, int have)
-    {
-        var q = new double[rows * rows];
-        for (int i = 0; i < rows; i++)
-            for (int j = 0; j < have; j++) q[i * rows + j] = u[i * have + j];
-        int col = have;
-        for (int e = 0; e < rows && col < rows; e++)
-        {
-            var vec = new double[rows];
-            vec[e] = 1.0;
-            for (int pass = 0; pass < 2; pass++)
-                for (int j = 0; j < col; j++)
-                {
-                    double dot = 0;
-                    for (int i = 0; i < rows; i++) dot += vec[i] * q[i * rows + j];
-                    for (int i = 0; i < rows; i++) vec[i] -= dot * q[i * rows + j];
-                }
-            double norm = Math.Sqrt(vec.Sum(x => x * x));
-            if (norm < 1e-8) continue;
-            for (int i = 0; i < rows; i++) q[i * rows + col] = vec[i] / norm;
-            col++;
-        }
-        return q;
-    }
 
     public sealed record SvdResult(NDArray U, NDArray S, NDArray Vt);
 
@@ -376,13 +167,13 @@ public static partial class np
             double[] u, s, v;
             if (rows >= cols)
             {
-                (u, s, v) = JacobiSvd(mats[t], rows, cols);   // u: rows×cols, v: cols×cols
+                (u, s, v) = DenseLinearAlgebra.ThinSvd(mats[t], rows, cols);   // u: rows×cols, v: cols×cols
             }
             else
             {
                 var tr = new double[rows * cols];
                 for (int i = 0; i < rows; i++) for (int j = 0; j < cols; j++) tr[j * rows + i] = mats[t][i * cols + j];
-                var (u2, s2, v2) = JacobiSvd(tr, cols, rows); // tr = U2 S V2^T  =>  a = V2 S U2^T
+                var (u2, s2, v2) = DenseLinearAlgebra.ThinSvd(tr, cols, rows); // tr = U2 S V2^T  =>  a = V2 S U2^T
                 u = v2; s = s2; v = u2;                       // u: rows×rows, v: cols×rows
             }
             // LAPACK (Householder bidiagonalization) leaves the leading singular vectors with a negative first
@@ -393,8 +184,8 @@ public static partial class np
                 for (int i = 0; i < (rows >= cols ? rows : cols); i++) { if (rows >= cols) u[i * uc2] = -u[i * uc2]; else v[i * vc] = -v[i * vc]; }
                 for (int i = 0; i < (rows >= cols ? cols : rows); i++) { if (rows >= cols) v[i * vc] = -v[i * vc]; else u[i * uc2] = -u[i * uc2]; }
             }
-            double[] uFull = fullMatrices && rows > k ? CompleteBasis(u, rows, k) : u;
-            double[] vFull = fullMatrices && cols > k ? CompleteBasis(v, cols, k) : v;
+            double[] uFull = fullMatrices && rows > k ? DenseLinearAlgebra.CompleteBasis(u, rows, k) : u;
+            double[] vFull = fullMatrices && cols > k ? DenseLinearAlgebra.CompleteBasis(v, cols, k) : v;
             int ucols = fullMatrices && rows > k ? rows : k;
             int vcols = fullMatrices && cols > k ? cols : k;
             us[t] = uFull;

@@ -1,4 +1,5 @@
 using System.Numerics;
+using MathemaSharp.LinearAlgebra;
 
 namespace NDSharp;
 
@@ -40,7 +41,9 @@ public static partial class np
         {
             var mat = new Complex[n * n];
             Array.Copy(flat, t * n * n, mat, 0, n * n);
-            var (w, v) = EigSolver.Solve(mat, n, vectors, realInput: !complexIn);
+            Complex[] w; Complex[]? v;
+            try { (w, v) = GeneralEigen.Solve(mat, n, vectors, realInput: !complexIn); }
+            catch (InvalidOperationException e) { throw new NDLinAlgException(e.Message); }
             Array.Copy(w, 0, ws, t * n, n);
             if (vs != null) Array.Copy(v!, 0, vs, t * n * n, n * n);
         }

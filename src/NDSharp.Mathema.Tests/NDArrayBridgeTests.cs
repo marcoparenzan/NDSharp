@@ -35,6 +35,32 @@ public class NDArrayBridgeTests
         Assert.Equal(z, z.ToNDArray().ToComplexVector());
     }
 
+    [Fact] public void ComplexVectorOfAnyIeeeFormat()
+    {
+        var array = new Complex<double>[] { new(1.5, -2), new(0.25, 4) }.ToNDArray();
+        Assert.Equal(new Complex<float>[] { new(1.5f, -2f), new(0.25f, 4f) }, array.ToComplexVector<float>());
+        Assert.Equal(new Complex<double>[] { new(1.5, -2), new(0.25, 4) }, array.ToComplexVector<double>());
+        // A complex64 array is stored with double parts too, so the values arrive unchanged.
+        Assert.Equal(new Complex<double>[] { new(1.5, -2), new(0.25, 4) }, array.AsType(DType.Complex64).ToComplexVector<double>());
+        Assert.Equal(array.ToComplexVector(), new Complex<float>[] { new(1.5f, -2f), new(0.25f, 4f) }.ToNDArray().ToComplexVector());
+    }
+
+    [Fact] public void ComplexVectorNeedsAComplexDtypeAndOneDimension()
+    {
+        Assert.Throws<NotSupportedException>(() => new[] { 1.0, 2.0 }.ToNDArray().ToComplexVector<double>());
+        Assert.Throws<ArgumentException>(() => np.Zeros(new[] { 2, 2 }, DType.Complex128).ToComplexVector<double>());
+    }
+
+    [Fact] public void SameTypeConversionIsACopyNotAView()
+    {
+        var array = new[] { 1.0, 2.0, 3.0 }.ToNDArray();
+        var copy = array.ToVector<double>();
+        copy[0] = 99;
+        Assert.Equal([1.0, 2.0, 3.0], array.ToVector<double>());
+        Assert.Equal([1L, 2L], np.Arange(1L, 3L).ToVector<long>());
+        Assert.Equal([1.0, 2.0], np.Arange(1L, 3L).ToVector<double>());
+    }
+
     [Fact] public void GenericFormatsGoThroughDouble()
     {
         var array = new[] { 0.5, 0.25 }.ToNDArray();

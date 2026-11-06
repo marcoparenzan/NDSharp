@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net11.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PackageId>NDSharp.JupyterSharp.Kernel</PackageId>
+    <Version>0.1.0-net11-preview.1</Version>
+    <Authors>Marco Parenzan</Authors>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <Description>A JupyterSharp kernel plugin for C# cells with NDSharp (ndarray with NumPy semantics), its bridge to MathemaSharp, and the Frame, Plot, Image and Wavelets libraries already referenced: no #r, no #load. NDSharp implements it; JupyterSharp only loads it.</Description>
+    <!-- All the libraries next to the plugin: the host loads the plugin from its own folder. -->
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- JupyterSharp.Kernels.CSharp is the host C# kernel; this plugin wraps it with the NDSharp references and imports. -->
+    <ProjectReference Include="../../../JupyterSharp/src/JupyterSharp.Kernels.CSharp/JupyterSharp.Kernels.CSharp.csproj" />
+    <ProjectReference Include="..\NDSharp\NDSharp.csproj" />
+    <ProjectReference Include="..\NDSharp.Mathema\NDSharp.Mathema.csproj" />
+    <ProjectReference Include="..\NDSharp.Frame\NDSharp.Frame.csproj" />
+    <ProjectReference Include="..\NDSharp.Plot\NDSharp.Plot.csproj" />
+    <ProjectReference Include="..\NDSharp.Image\NDSharp.Image.csproj" />
+    <ProjectReference Include="..\NDSharp.Wavelets\NDSharp.Wavelets.csproj" />
+  </ItemGroup>
+</Project>
