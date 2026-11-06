@@ -34,8 +34,8 @@ public class SortingKernelTests
         }
         foreach (var (name, v) in new[] { ("transposed", np.Transpose(a)), ("flipped", np.Flip(a, 1)), ("moved", np.MoveAxis(a, 0, 2)) })
         {
-            Assert.True(KernelPathTests.Compare($"sort {name}", () => np.Sort(v, 1)), name);
-            Assert.True(KernelPathTests.Compare($"argsort {name}", () => np.ArgSort(v, 0)), name);
+            Assert.True(KernelPathTests.Compare($"sort {name} {dtype}", () => np.Sort(v, 1)), name);
+            Assert.True(KernelPathTests.Compare($"argsort {name} {dtype}", () => np.ArgSort(v, 0)), name);
         }
     }
 
@@ -49,7 +49,7 @@ public class SortingKernelTests
         KernelPathTests.Compare("0-d", () => np.Sort(NDArray.Scalar(1.0)));
         KernelPathTests.Compare("bad axis", () => np.Sort(Repeated(DType.Int32, 3, 3), 2));
         // complex numbers sort too, in numpy's lexicographic order
-        using var scope = KernelPath.Begin(true);
+        using var scope = KernelPath.Begin();
         _ = np.Sort(np.Zeros(new[] { 4 }, DType.Complex128));
         Assert.Equal(1, scope.Calls);
     }
@@ -57,7 +57,7 @@ public class SortingKernelTests
     [Fact]
     public void SortKnownValues()
     {
-        using var _ = KernelPath.Begin(true);
+        using var _ = KernelPath.Begin();
         Assert.Equal(new[] { 1.0, 2.0, 3.0, double.NaN }, np.Sort(NDArray.FromArray(new[] { 3.0, double.NaN, 1.0, 2.0 }, 4)).Copy().Data<double>());
         Assert.Equal(new long[] { 2, 3, 0, 1 }, np.ArgSort(NDArray.FromArray(new[] { 3.0, double.NaN, 1.0, 2.0 }, 4)).Copy().Data<long>());
         Assert.Equal(new long[] { 1, 3, 0, 2 }, np.ArgSort(NDArray.FromArray(new[] { 2, 1, 2, 1 }, 4)).Copy().Data<long>());   // stable
@@ -74,14 +74,7 @@ public class SortingKernelTests
         var a = Repeated(dtype, 5, 8);
         foreach (var (ri, rv, rc) in new[] { (false, false, false), (true, true, true), (true, false, false), (false, true, false) })
         {
-            NDArray[] Parts() { var u = np.Unique(a, ri, rv, rc); return new[] { u.Values, u.Index!, u.Inverse!, u.Counts! }.Where(x => x is not null).ToArray(); }
-            NDArray[] expected;
-            using (KernelPath.Begin(false)) expected = Parts();
-            using var on = KernelPath.Begin(true);
-            var got = Parts();
-            Assert.Equal(expected.Length, got.Length);
-            for (int i = 0; i < expected.Length; i++) KernelPathTests.SameBitsPublic(expected[i], got[i], $"unique {dtype} #{i}");
-            Assert.True(on.Calls > 0);
+            Assert.True(KernelPathTests.CompareMany($"unique {dtype} index={ri} inverse={rv} counts={rc}", () => { var u = np.Unique(a, ri, rv, rc); return new[] { u.Values, u.Index!, u.Inverse!, u.Counts! }.Where(x => x is not null).ToArray(); }));
         }
     }
 
@@ -160,14 +153,8 @@ public class SortingKernelTests
             Assert.True(KernelPathTests.Compare($"sort {dtype} axis={axis}", () => np.Sort(a, axis)));
             Assert.True(KernelPathTests.Compare($"argsort {dtype} axis={axis}", () => np.ArgSort(a, axis)));
         }
-        Assert.True(KernelPathTests.Compare("sort transposed", () => np.Sort(np.Transpose(a), 1)));
-        NDArray[] Parts() { var u = np.Unique(a, true, true, true); return new[] { u.Values, u.Index!, u.Inverse!, u.Counts! }; }
-        NDArray[] expected;
-        using (KernelPath.Begin(false)) expected = Parts();
-        using var on = KernelPath.Begin(true);
-        var got = Parts();
-        for (int i = 0; i < expected.Length; i++) KernelPathTests.SameBitsPublic(expected[i], got[i], $"unique {dtype} #{i}");
-        Assert.True(on.Calls > 0);
+        Assert.True(KernelPathTests.Compare($"sort transposed {dtype}", () => np.Sort(np.Transpose(a), 1)));
+        Assert.True(KernelPathTests.CompareMany($"unique {dtype}", () => { var u = np.Unique(a, true, true, true); return new[] { u.Values, u.Index!, u.Inverse!, u.Counts! }; }));
     }
 
     [Fact]
@@ -188,7 +175,7 @@ public class SortingKernelTests
         var a = NDArray.FromArray(data, 3, 40);
         foreach (var kth in new[] { new[] { 0 }, new[] { 7 }, new[] { -1 }, new[] { 3, 20, 39 }, new[] { -40 } })
         {
-            using var on = KernelPath.Begin(true);
+            using var on = KernelPath.Begin();
             var p = np.Partition(a, kth, 1);
             var sorted = np.Sort(a, 1).Copy().Data<double>();
             var got = p.Copy().Data<double>();
@@ -236,7 +223,7 @@ public class SortingKernelTests
         double[] a = Enumerable.Range(0, 60).Select(_ => (double)rnd.Next(0, 4)).ToArray();
         double[] b = Enumerable.Range(0, 60).Select(_ => (double)rnd.Next(0, 3)).ToArray();
         double[] c = Enumerable.Range(0, 60).Select(_ => (double)rnd.Next(0, 5)).ToArray();
-        using var on = KernelPath.Begin(true);
+        using var on = KernelPath.Begin();
         var keys = new List<NDArray> { NDArray.FromArray(a, 60), NDArray.FromArray(b, 60), NDArray.FromArray(c, 60) };
         Assert.Equal(LexReference(new[] { a, b, c }, 60), np.LexSort(keys).Copy().Data<long>());
         Assert.Equal(LexReference(new[] { a, b, c }, 60), np.LexSort(NDArray.FromArray(a.Concat(b).Concat(c).ToArray(), 3, 60)).Copy().Data<long>());

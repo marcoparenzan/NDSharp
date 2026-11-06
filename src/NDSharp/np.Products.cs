@@ -70,33 +70,14 @@ public static partial class np
         var w = new RowWalker(batch, sa, sb);
         int ob = 0;
         int mn = m * n;
-        bool kernel = KernelPath.Active;   // the general loop below stays as the oracle of the tests and runs when the kernel path is switched off
-        if (kernel) KernelPath.CountCall();
+        KernelPath.CountCall();
         do
         {
             for (int bi = 0; bi < w.InnerLen; bi++)
             {
                 int pa = a.Offset + w.Off0 + bi * w.InnerStride0;
                 int pb = b.Offset + w.Off1 + bi * w.InnerStride1;
-                if (kernel)
-                {
-                    MathemaSharp.Kernels.Products.MatMul<T>(Block(x, pa, ar, ac, m, k), Block(y, pb, br, bcs, k, n), o.AsSpan(ob, mn), m, k, n);
-                    ob += mn;
-                    continue;
-                }
-                for (int i = 0; i < m; i++)
-                {
-                    int orow = ob + i * n;
-                    for (int kk = 0; kk < k; kk++)
-                    {
-                        T av = x[pa + i * ar + kk * ac];
-                        int prow = pb + kk * br;
-                        if (bcs == 1)
-                            for (int j = 0; j < n; j++) o[orow + j] += av * y[prow + j];
-                        else
-                            for (int j = 0; j < n; j++) o[orow + j] += av * y[prow + j * bcs];
-                    }
-                }
+                MathemaSharp.Kernels.Products.MatMul<T>(Block(x, pa, ar, ac, m, k), Block(y, pb, br, bcs, k, n), o.AsSpan(ob, mn), m, k, n);
                 ob += mn;
             }
         } while (w.Next());

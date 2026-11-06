@@ -55,8 +55,8 @@ public class OrderStatisticsKernelTests
         foreach (var (name, v) in new[] { ("transposed", np.Transpose(baseArray)), ("flipped", np.Flip(baseArray, 1)), ("moved", np.MoveAxis(baseArray, 0, 2)) })
             foreach (var axes in new int[]?[] { null, [0], [1], [0, 2], [1, 2] })
             {
-                Assert.True(KernelPathTests.Compare($"median {name}", () => np.Median(v, axes)), name);
-                Assert.True(KernelPathTests.Compare($"percentile {name}", () => np.Percentile(v, Q(10, 90), axes)), name);
+                Assert.True(KernelPathTests.Compare($"median {name} axes=[{(axes is null ? "all" : string.Join(",", axes))}]", () => np.Median(v, axes)), name);
+                Assert.True(KernelPathTests.Compare($"percentile {name} axes=[{(axes is null ? "all" : string.Join(",", axes))}]", () => np.Percentile(v, Q(10, 90), axes)), name);
             }
     }
 
@@ -65,7 +65,7 @@ public class OrderStatisticsKernelTests
     {
         var a = NDArray.FromArray(new[] { double.MaxValue, double.MaxValue }, 2);
         Assert.True(KernelPathTests.Compare("median realmax", () => np.Median(a)));
-        using var _ = KernelPath.Begin(true);
+        using var _ = KernelPath.Begin();
         Assert.True(double.IsPositiveInfinity(np.Median(a).Data<double>()[0]));   // numpy: (a + b) / 2 overflows
     }
 

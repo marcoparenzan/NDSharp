@@ -5,8 +5,8 @@ using Xunit;
 
 namespace NDSharp.Tests;
 
-/// <summary>sum, prod, max, min, mean, var, std, cumsum and cumprod run on the MathemaSharp kernels. The general engine is the oracle: for every dtype,
-/// layout, axes combination and option, the kernel result must have the same dtype, shape and bits. Counts are per execution context, so other tests
+/// <summary>sum, prod, max, min, mean, var, std, cumsum and cumprod run on the MathemaSharp kernels. For every dtype, layout, axes combination and option the result must
+/// be the reference fingerprint produced by the former general engine (see <see cref="Golden"/>): same dtype, shape and bits. Counts are per execution context, so other tests
 /// running in parallel do not disturb them.</summary>
 public class KernelPathTests
 {
@@ -52,25 +52,23 @@ public class KernelPathTests
 
     internal static readonly int[]?[] AxisSets = [null, [0], [1], [2], [0, 1], [1, 2], [0, 2], [0, 1, 2], [-1]];
 
-    /// <summary>Runs the call with the engine and with the kernels and compares; returns whether the kernels answered.</summary>
-    internal static bool Compare(string what, Func<NDArray> call)
+    /// <summary>Runs the call on the kernels and checks the result (or the error) against the reference fingerprint of this case (see <see cref="Golden"/>);
+    /// returns whether the call succeeded and the kernels answered.</summary>
+    internal static bool Compare(string what, Func<NDArray> call, [System.Runtime.CompilerServices.CallerMemberName] string test = "")
     {
-        NDArray expected; Exception? expectedError = null;
-        using (var off = KernelPath.Begin(false))
-        {
-            try { expected = call(); } catch (Exception e) { expected = null!; expectedError = e; }
-            Assert.Equal(0, off.Calls);
-        }
-        using var on = KernelPath.Begin(true);
-        if (expectedError is not null)
-        {
-            var actual = Assert.ThrowsAny<Exception>(call);
-            Assert.Equal(expectedError.GetType(), actual.GetType());
-            Assert.Equal(expectedError.Message, actual.Message);
-            return false;
-        }
+        using var on = KernelPath.Begin();
+        NDArray? got = null; Exception? error = null;
+        try { got = call(); } catch (Exception e) { error = e; }
+        Golden.Check(test + "|" + what, error is null ? Golden.Hash(got!) : Golden.Describe(error), what);
+        return error is null && on.Calls > 0;
+    }
+
+    /// <summary>As <see cref="Compare"/> for a call that returns several arrays.</summary>
+    internal static bool CompareMany(string what, Func<NDArray[]> call, [System.Runtime.CompilerServices.CallerMemberName] string test = "")
+    {
+        using var on = KernelPath.Begin();
         var got = call();
-        SameBits(expected, got, what);
+        Golden.Check(test + "|" + what, Golden.Hash(got), what);
         return on.Calls > 0;
     }
 
@@ -200,19 +198,8 @@ public class KernelPathTests
     public void Float16RunsOnTheKernelsToo()
     {
         var h = Make(DType.Float64, false, 4, 5).AsType(DType.Float16);
-        using var scope = KernelPath.Begin(true);
+        using var scope = KernelPath.Begin();
         _ = np.Sum(h, [0]); _ = np.Max(h); _ = np.Mean(h); _ = np.CumSum(h, 0); _ = np.Median(h);
         Assert.Equal(5, scope.Calls);
-    }
-
-    [Fact]
-    public void SwitchOffUsesTheEngineAndScopesNest()
-    {
-        var a = Make(DType.Float64, false, 10);
-        using var outer = KernelPath.Begin(true);
-        _ = np.Sum(a);
-        using (var inner = KernelPath.Begin(false)) { _ = np.Sum(a); Assert.Equal(0, inner.Calls); }
-        _ = np.Sum(a);
-        Assert.Equal(2, outer.Calls);
     }
 }

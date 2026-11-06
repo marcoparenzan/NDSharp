@@ -23,18 +23,18 @@ public class ProductsKernelTests
         var a3 = KernelPathTests.Make(dtype, sp, 2, 3, 4);
         var b3 = KernelPathTests.Make(dtype, sp, 2, 4, 5);
         var v4 = KernelPathTests.Make(dtype, sp, 4);
-        Assert.True(KernelPathTests.Compare("2d", () => np.MatMul(a, b)));
-        Assert.True(KernelPathTests.Compare("batched", () => np.MatMul(a3, b3)));
-        Assert.True(KernelPathTests.Compare("broadcast batch", () => np.MatMul(KernelPathTests.Make(dtype, sp, 1, 3, 4), KernelPathTests.Make(dtype, sp, 5, 4, 2))));
-        Assert.True(KernelPathTests.Compare("2d x batch", () => np.MatMul(a, b3)));
-        Assert.True(KernelPathTests.Compare("vector . vector", () => np.MatMul(v4, v4)));
-        Assert.True(KernelPathTests.Compare("matrix . vector", () => np.MatMul(a, v4)));
-        Assert.True(KernelPathTests.Compare("vector . matrix", () => np.MatMul(v4, b)));
-        Assert.True(KernelPathTests.Compare("dot", () => np.Dot(a, b)));
-        Assert.True(KernelPathTests.Compare("transposed a", () => np.MatMul(np.Transpose(KernelPathTests.Make(dtype, sp, 4, 3)), b)));
-        Assert.True(KernelPathTests.Compare("transposed b", () => np.MatMul(a, np.Transpose(KernelPathTests.Make(dtype, sp, 5, 4)))));
-        Assert.True(KernelPathTests.Compare("flipped", () => np.MatMul(np.Flip(a, 1), np.Flip(b, 0))));
-        Assert.True(KernelPathTests.Compare("batch of transposed", () => np.MatMul(np.SwapAxes(KernelPathTests.Make(dtype, sp, 2, 4, 3), 1, 2), b3)));
+        Assert.True(KernelPathTests.Compare($"2d {dtype}", () => np.MatMul(a, b)));
+        Assert.True(KernelPathTests.Compare($"batched {dtype}", () => np.MatMul(a3, b3)));
+        Assert.True(KernelPathTests.Compare($"broadcast batch {dtype}", () => np.MatMul(KernelPathTests.Make(dtype, sp, 1, 3, 4), KernelPathTests.Make(dtype, sp, 5, 4, 2))));
+        Assert.True(KernelPathTests.Compare($"2d x batch {dtype}", () => np.MatMul(a, b3)));
+        Assert.True(KernelPathTests.Compare($"vector . vector {dtype}", () => np.MatMul(v4, v4)));
+        Assert.True(KernelPathTests.Compare($"matrix . vector {dtype}", () => np.MatMul(a, v4)));
+        Assert.True(KernelPathTests.Compare($"vector . matrix {dtype}", () => np.MatMul(v4, b)));
+        Assert.True(KernelPathTests.Compare($"dot {dtype}", () => np.Dot(a, b)));
+        Assert.True(KernelPathTests.Compare($"transposed a {dtype}", () => np.MatMul(np.Transpose(KernelPathTests.Make(dtype, sp, 4, 3)), b)));
+        Assert.True(KernelPathTests.Compare($"transposed b {dtype}", () => np.MatMul(a, np.Transpose(KernelPathTests.Make(dtype, sp, 5, 4)))));
+        Assert.True(KernelPathTests.Compare($"flipped {dtype}", () => np.MatMul(np.Flip(a, 1), np.Flip(b, 0))));
+        Assert.True(KernelPathTests.Compare($"batch of transposed {dtype}", () => np.MatMul(np.SwapAxes(KernelPathTests.Make(dtype, sp, 2, 4, 3), 1, 2), b3)));
     }
 
     [Fact]
@@ -51,7 +51,7 @@ public class ProductsKernelTests
     [Fact]
     public void MatMulKnownProduct()
     {
-        using var _ = KernelPath.Begin(true);
+        using var _ = KernelPath.Begin();
         var a = NDArray.FromArray(new[] { 1.0, 2.0, 3.0, 4.0, 5.0, 6.0 }, 2, 3);
         var b = NDArray.FromArray(new[] { 7.0, 8.0, 9.0, 10.0, 11.0, 12.0 }, 3, 2);
         Assert.Equal(new[] { 58.0, 64.0, 139.0, 154.0 }, np.MatMul(a, b).Copy().Data<double>());
@@ -82,9 +82,9 @@ public class ProductsKernelTests
             var other = rowvar ? y : np.Transpose(y);
             Assert.True(KernelPathTests.Compare("cov y " + at, () => np.Cov(data, other, rowvar, bias, ddof)), at);
         }
-        Assert.True(KernelPathTests.Compare("1-D", () => np.Cov(KernelPathTests.Make(dtype, sp, 20))));
-        Assert.True(KernelPathTests.Compare("two 1-D", () => np.Cov(KernelPathTests.Make(dtype, sp, 20), KernelPathTests.Make(dtype, false, 20))));
-        Assert.True(KernelPathTests.Compare("strided", () => np.Cov(np.Flip(m, 1))));
+        Assert.True(KernelPathTests.Compare($"1-D {dtype}", () => np.Cov(KernelPathTests.Make(dtype, sp, 20))));
+        Assert.True(KernelPathTests.Compare($"two 1-D {dtype}", () => np.Cov(KernelPathTests.Make(dtype, sp, 20), KernelPathTests.Make(dtype, false, 20))));
+        Assert.True(KernelPathTests.Compare($"strided {dtype}", () => np.Cov(np.Flip(m, 1))));
     }
 
     [Fact]
@@ -121,7 +121,7 @@ public class ProductsKernelTests
     [Fact]
     public void CorrCoefIsClippedAndHasKnownValues()
     {
-        using var _ = KernelPath.Begin(true);
+        using var _ = KernelPath.Begin();
         var x = NDArray.FromArray(new[] { 1.0, 2.0, 3.0, 4.0, 2.0, 4.0, 6.0, 8.0 }, 2, 4);   // perfectly correlated
         Assert.Equal(new[] { 1.0, 1.0, 1.0, 1.0 }, np.CorrCoef(x).Copy().Data<double>());
         var anti = NDArray.FromArray(new[] { 1.0, 2.0, 3.0, 4.0, 8.0, 6.0, 4.0, 2.0 }, 2, 4);

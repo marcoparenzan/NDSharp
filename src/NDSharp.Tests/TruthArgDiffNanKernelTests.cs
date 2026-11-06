@@ -37,8 +37,8 @@ public class TruthArgDiffNanKernelTests
         }
         foreach (var (name, v) in new[] { ("transposed", np.Transpose(a)), ("flipped", np.Flip(a, 1)) })
         {
-            Assert.True(KernelPathTests.Compare("any " + name, () => np.Any(v, [1])), name);
-            Assert.True(KernelPathTests.Compare("count_nonzero " + name, () => np.CountNonzero(v, [0, 2])), name);
+            Assert.True(KernelPathTests.Compare($"any {name} {dtype}", () => np.Any(v, [1])), name);
+            Assert.True(KernelPathTests.Compare($"count_nonzero {name} {dtype}", () => np.CountNonzero(v, [0, 2])), name);
         }
     }
 
@@ -56,8 +56,8 @@ public class TruthArgDiffNanKernelTests
                 Assert.True(KernelPathTests.Compare("argmax " + at, () => np.ArgMax(a, axis, keep)), at);
                 Assert.True(KernelPathTests.Compare("argmin " + at, () => np.ArgMin(a, axis, keep)), at);
             }
-            Assert.True(KernelPathTests.Compare("argmax transposed", () => np.ArgMax(np.Transpose(a), 1)));
-            Assert.True(KernelPathTests.Compare("argmin flipped", () => np.ArgMin(np.Flip(a, 2), null)));
+            Assert.True(KernelPathTests.Compare($"argmax transposed {dtype} specials={specials}", () => np.ArgMax(np.Transpose(a), 1)));
+            Assert.True(KernelPathTests.Compare($"argmin flipped {dtype} specials={specials}", () => np.ArgMin(np.Flip(a, 2), null)));
         }
     }
 
@@ -65,7 +65,7 @@ public class TruthArgDiffNanKernelTests
     public void ArgExtremeTiesNanAndEmpty()
     {
         var tie = NDArray.FromArray(new[] { 3.0, 9.0, 9.0, 1.0, 1.0 }, 5);
-        using (KernelPath.Begin(true))
+        using (KernelPath.Begin())
         {
             Assert.Equal(1L, np.ArgMax(tie).Data<long>()[0]);   // the first of equal elements
             Assert.Equal(3L, np.ArgMin(tie).Data<long>()[0]);
@@ -88,13 +88,13 @@ public class TruthArgDiffNanKernelTests
             bool used = KernelPathTests.Compare("diff " + at, () => np.Diff(a, n, axis));
             Assert.Equal(kernel, used);
         }
-        if (kernel) Assert.True(KernelPathTests.Compare("diff transposed", () => np.Diff(np.Transpose(a), 2, 1)));
+        if (kernel) Assert.True(KernelPathTests.Compare($"diff transposed {dtype}", () => np.Diff(np.Transpose(a), 2, 1)));
     }
 
     [Fact]
     public void DiffKnownValuesAndShapes()
     {
-        using var _ = KernelPath.Begin(true);
+        using var _ = KernelPath.Begin();
         Assert.Equal(new[] { 3.0, 5.0, 7.0 }, np.Diff(NDArray.FromArray(new[] { 1.0, 4.0, 9.0, 16.0 }, 4)).Copy().Data<double>());
         Assert.Equal(new[] { 2.0, 2.0 }, np.Diff(NDArray.FromArray(new[] { 1.0, 4.0, 9.0, 16.0 }, 4), 2).Copy().Data<double>());
         Assert.Equal(new byte[] { 255, 1 }, np.Diff(NDArray.FromArray(new byte[] { 5, 4, 5 }, 3)).Copy().Data<byte>());   // unsigned wrap, as numpy
@@ -151,7 +151,6 @@ public class TruthArgDiffNanKernelTests
             {
                 string at = $"{dtype} allNan={allNan} axes=[{(axes is null ? "all" : string.Join(",", axes))}] keep={keep}";
                 NDArray sumExpected, prodExpected, maxExpected, minExpected;
-                using (KernelPath.Begin(false))
                 {
                     sumExpected = np.Sum(Replace(a, 0), axes, keep);
                     prodExpected = np.Prod(Replace(a, 1), axes, keep);
@@ -159,7 +158,6 @@ public class TruthArgDiffNanKernelTests
                     maxExpected = np.Where(anyValid, np.Max(Replace(a, double.NegativeInfinity), axes, keep), NDArray.WeakScalar(double.NaN));
                     minExpected = np.Where(anyValid, np.Min(Replace(a, double.PositiveInfinity), axes, keep), NDArray.WeakScalar(double.NaN));
                 }
-                using (KernelPath.Begin(false))   // the nan* functions ignore the switch: they always run on the kernels
                 {
                     Same(sumExpected, np.NanSum(a, axes, keep), "nansum " + at);
                     Same(prodExpected, np.NanProd(a, axes, keep), "nanprod " + at);
@@ -182,7 +180,6 @@ public class TruthArgDiffNanKernelTests
                 {
                     string at = $"{dtype} allNan={allNan} axes=[{(axes is null ? "all" : string.Join(",", axes))}] ddof={ddof}";
                     NDArray meanExpected, varExpected;
-                    using (KernelPath.Begin(false))
                     {
                         var arr = Replace(a, 0);
                         var cnt = np.Sum(np.LogicalNot(IsNanOf(a)), axes, false);                  // int64
@@ -197,7 +194,7 @@ public class TruthArgDiffNanKernelTests
                     }
                     Same(meanExpected, np.NanMean(a, axes, false), "nanmean " + at);
                     Same(varExpected, np.NanVar(a, axes, false, ddof), "nanvar " + at);
-                    using (KernelPath.Begin(false)) Same(np.Sqrt(varExpected), np.NanStd(a, axes, false, ddof), "nanstd " + at);
+                    Same(np.Sqrt(varExpected), np.NanStd(a, axes, false, ddof), "nanstd " + at);
                 }
             }
         }
@@ -225,7 +222,6 @@ public class TruthArgDiffNanKernelTests
         foreach (var axis in new[] { 0, 1, 2 })
         {
             var lanes = Lanes(a, axis);
-            using (KernelPath.Begin(false))
             {
                 var nm = np.NanMedian(a, [axis]);
                 var np30 = np.NanPercentile(a, NDArray.Scalar(30.0), [axis]);
@@ -263,7 +259,7 @@ public class TruthArgDiffNanKernelTests
         foreach (int? axis in new int?[] { null, 0, 1, 2, -1 })
         {
             NDArray sumExpected, prodExpected;
-            using (KernelPath.Begin(false)) { sumExpected = np.CumSum(Replace(a, 0), axis); prodExpected = np.CumProd(Replace(a, 1), axis); }
+            { sumExpected = np.CumSum(Replace(a, 0), axis); prodExpected = np.CumProd(Replace(a, 1), axis); }
             Same(sumExpected, np.NanCumSum(a, axis), $"nancumsum {dtype} axis={axis}");
             Same(prodExpected, np.NanCumProd(a, axis), $"nancumprod {dtype} axis={axis}");
         }
@@ -273,7 +269,6 @@ public class TruthArgDiffNanKernelTests
     public void IntegersAndBoolGoToThePlainFunctionsAndComplexIsRefused()
     {
         var ints = KernelPathTests.Make(DType.Int32, false, 4, 5, 6);
-        using (KernelPath.Begin(false))
         {
             Same(np.Sum(ints, [1]), np.NanSum(ints, [1]), "nansum int");
             Same(np.Mean(ints, [2]), np.NanMean(ints, [2]), "nanmean int");
@@ -283,5 +278,16 @@ public class TruthArgDiffNanKernelTests
         }
         var z = np.Zeros(new[] { 3 }, DType.Complex128);
         Assert.Throws<NDNotSupportedException>(() => np.NanSum(z));
+    }
+
+    [Fact]
+    public void DatesAndDurationsGoThroughTheirStorage()
+    {
+        // found by the real-numpy snippet P11_datetime64 of PySharp: the former engine ordered dates by their integer storage
+        var days = NDArray.FromArray(new long[] { 3, 9, 1 }, 3).AsType(DType.DateTime64D);
+        Assert.Equal(1L, np.ArgMax(days).Copy().Data<long>()[0]);
+        Assert.Equal(2L, np.ArgMin(days).Copy().Data<long>()[0]);
+        Assert.Equal(new long[] { 2, 0, 1 }, np.ArgSort(days).Copy().Data<long>());
+        Assert.Equal(new long[] { 1, 3, 9 }, np.Sort(days).AsType(DType.Int64).Copy().Data<long>());
     }
 }

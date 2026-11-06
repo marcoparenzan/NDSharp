@@ -18,33 +18,27 @@ public static class KernelPath
 {
     static readonly AsyncLocal<Scope?> current = new();
 
-    /// <summary>Starts a scope in the current execution context (it flows to the threads and tasks started from it) that switches the kernel path
-    /// on or off and counts the calls it answers. Dispose it to restore the previous setting. Meant for tests and diagnostics; the default is on.
-    /// With the path off, every call uses the general engine.</summary>
-    public static Scope Begin(bool enabled)
+    /// <summary>Starts a counting scope in the current execution context (it flows to the threads and tasks started from it): <see cref="Scope.Calls"/> is the number of calls
+    /// the kernels answered inside it. Dispose it to restore the previous scope. Meant for tests and diagnostics.</summary>
+    public static Scope Begin()
     {
-        var s = new Scope(enabled, current.Value);
+        var s = new Scope(current.Value);
         current.Value = s;
         return s;
     }
 
-    /// <summary>A switch and a counter for the kernel path, local to an execution context.</summary>
+    /// <summary>A counter of the calls answered by the kernels, local to an execution context.</summary>
     public sealed class Scope : IDisposable
     {
         readonly Scope? previous;
         long calls;
-        internal Scope(bool enabled, Scope? previous) { Enabled = enabled; this.previous = previous; }
-        /// <summary>Whether the kernel path is on inside this scope.</summary>
-        public bool Enabled { get; }
+        internal Scope(Scope? previous) { this.previous = previous; }
         /// <summary>Calls answered by the kernels inside this scope.</summary>
         public long Calls => Interlocked.Read(ref calls);
         internal void Count() => Interlocked.Increment(ref calls);
         /// <inheritdoc/>
         public void Dispose() => current.Value = previous;
     }
-
-    /// <summary>Whether the kernel path is on in the current execution context (it is, unless a scope switched it off).</summary>
-    internal static bool Active => current.Value is not { Enabled: false };
 
     /// <summary>Counts one call answered by the kernels in the current scope (for the products, which do their own dispatch).</summary>
     internal static void CountCall() => current.Value?.Count();
@@ -56,12 +50,11 @@ public static class KernelPath
     internal static bool TryReduce(Op op, NDArray a, int[] axes, bool keepdims, int ddof, out NDArray result)
         => TryReduce(op, a, axes, keepdims, ddof, NanPolicy.Propagate, out result);
 
-    /// <summary>As above with a NaN policy: <see cref="NanPolicy.Omit"/> serves the <c>nan*</c> functions, which have no general-engine implementation and so ignore <see cref="Begin"/>.</summary>
+    /// <summary>As above with a NaN policy: <see cref="NanPolicy.Omit"/> serves the <c>nan*</c> functions.</summary>
     internal static bool TryReduce(Op op, NDArray a, int[] axes, bool keepdims, int ddof, NanPolicy nan, out NDArray result)
     {
         result = null!;
         var scope = current.Value;
-        if (scope is { Enabled: false } && nan == NanPolicy.Propagate) return false;
         NDArray? r = op is Op.Mean or Op.Var ? ReduceFloat(op, a, axes, keepdims, ddof, nan) : ReduceNumber(op, a, axes, keepdims, nan);
         if (r is null) return false;
         scope?.Count();
@@ -77,7 +70,6 @@ public static class KernelPath
     {
         result = null!;
         var scope = current.Value;
-        if (scope is { Enabled: false } && nan == NanPolicy.Propagate) return false;
         NDArray? r = a.DType switch
         {
             DType.Int8 => Scan<sbyte>(op, a, axis, nan),
@@ -261,7 +253,6 @@ public static class KernelPath
     {
         result = null!;
         var scope = current.Value;
-        if (scope is { Enabled: false } && nan == NanPolicy.Propagate) return false;
         NDArray? r = a.DType switch
         {
             DType.Float16 => Order<Half>(a, axes, keepdims, q, method, nan),
@@ -296,7 +287,7 @@ public static class KernelPath
 
     /// <summary>Tries the kernel for <c>sort</c> of a real array along <paramref name="axis"/> (normalised): NaN last, not stable. Bool must be cast to uint8 by the caller.</summary>
     internal static bool TrySort(NDArray a, int axis, out NDArray result)
-        => Finish(a.DType switch
+        => Finish(a.DType.Storage() switch
         {
             DType.Int8 => SortOf<sbyte>(a, axis),
             DType.UInt8 => SortOf<byte>(a, axis),
@@ -315,7 +306,7 @@ public static class KernelPath
 
     /// <summary>Tries the kernel for the stable <c>argsort</c> (int64 result). Bool must be cast to uint8 by the caller.</summary>
     internal static bool TryArgSort(NDArray a, int axis, out NDArray result)
-        => Finish(a.DType switch
+        => Finish(a.DType.Storage() switch
         {
             DType.Int8 => ArgSortOf<sbyte>(a, axis),
             DType.UInt8 => ArgSortOf<byte>(a, axis),
@@ -334,7 +325,6 @@ public static class KernelPath
 
     static NDArray? SortOf<T>(NDArray a, int axis) where T : unmanaged, INumber<T>
     {
-        if (!Active) return null;
         var shape = (int[])a.Shape.Clone();
         var values = new T[a.Size];
         if (a.Size > 0)
@@ -348,7 +338,6 @@ public static class KernelPath
 
     static NDArray? SortComplexOf(NDArray a, int axis)
     {
-        if (!Active) return null;
         var shape = (int[])a.Shape.Clone();
         var values = new Complex[a.Size];
         if (a.Size > 0)
@@ -362,7 +351,6 @@ public static class KernelPath
 
     static NDArray? ArgSortComplexOf(NDArray a, int axis)
     {
-        if (!Active) return null;
         var shape = (int[])a.Shape.Clone();
         var order = new int[a.Size];
         if (a.Size > 0)
@@ -390,7 +378,6 @@ public static class KernelPath
 
     static NDArray? ArgSortOf<T>(NDArray a, int axis) where T : unmanaged, INumber<T>
     {
-        if (!Active) return null;
         var shape = (int[])a.Shape.Clone();
         var order = new int[a.Size];
         if (a.Size > 0)
@@ -441,7 +428,7 @@ public static class KernelPath
     internal static bool TryCov(NDArray x, int ddof, out NDArray result)
     {
         result = null!;
-        if (!Active || x.DType != DType.Float64 || x.Ndim != 2) return false;
+        if (x.DType != DType.Float64 || x.Ndim != 2) return false;
         var buffer = CContiguous<double>(x, out int offset);
         int v = x.Shape[0], n = x.Shape[1];
         var cov = new double[v * v];
@@ -457,7 +444,7 @@ public static class KernelPath
     internal static bool TryCorrelation(NDArray cov, out NDArray result)
     {
         result = null!;
-        if (!Active || cov.DType != DType.Float64 || cov.Ndim != 2 || cov.Shape[0] != cov.Shape[1]) return false;
+        if (cov.DType != DType.Float64 || cov.Ndim != 2 || cov.Shape[0] != cov.Shape[1]) return false;
         var buffer = CContiguous<double>(cov, out int offset);
         int v = cov.Shape[0];
         var corr = new double[v * v];
@@ -514,7 +501,7 @@ public static class KernelPath
         bool bad = false;
         bool ok = Finish(WithT(a, x =>
         {
-            (NDArray? r, bool b) = x.DType switch
+            (NDArray? r, bool b) = x.DType.Storage() switch
             {
                 DType.Int8 => Arg<sbyte>(max, x, axes, keepdims, nan),
                 DType.UInt8 => Arg<byte>(max, x, axes, keepdims, nan),
@@ -558,7 +545,6 @@ public static class KernelPath
     {
         result = null!;
         var scope = current.Value;
-        if (scope is { Enabled: false } && nan == NanPolicy.Propagate) return false;
         if (r is null) return false;
         scope?.Count();
         result = r;
@@ -567,7 +553,6 @@ public static class KernelPath
 
     static NDArray Truth<T>(bool all, NDArray a, int[] axes, bool keepdims) where T : unmanaged, INumberBase<T>
     {
-        if (current.Value is { Enabled: false }) return null!;
         var buffer = Prepare<T>(a, axes, out int offset, out var lane, out _, out _);
         var values = new bool[lane.Count];
         var src = Window(buffer, offset, lane);
@@ -577,7 +562,6 @@ public static class KernelPath
 
     static NDArray Count<T>(NDArray a, int[] axes, bool keepdims) where T : unmanaged, INumberBase<T>
     {
-        if (current.Value is { Enabled: false }) return null!;
         var buffer = Prepare<T>(a, axes, out int offset, out var lane, out _, out _);
         var counts = new int[lane.Count];
         Reductions.CountNonZero<T>(Window(buffer, offset, lane), lane, counts, true);
@@ -588,7 +572,6 @@ public static class KernelPath
 
     static (NDArray?, bool) Arg<T>(bool max, NDArray a, int[] axes, bool keepdims, NanPolicy nan) where T : unmanaged, INumber<T>
     {
-        if (nan == NanPolicy.Propagate && current.Value is { Enabled: false }) return (null, false);
         var buffer = Prepare<T>(a, axes, out int offset, out var lane, out _, out _);
         if (lane.Length == 0) throw new NDValueException($"attempt to get {(max ? "argmax" : "argmin")} of an empty sequence");
         var src = Window(buffer, offset, lane);
@@ -604,7 +587,6 @@ public static class KernelPath
 
     static NDArray Difference<T>(NDArray a, int n, int axis) where T : unmanaged, INumber<T>
     {
-        if (current.Value is { Enabled: false }) return null!;
         var shape = (int[])a.Shape.Clone();
         var buffer = CContiguous<T>(a, out int offset);
         var lane = Lane.ForRowMajorAxis(shape, axis);
@@ -651,7 +633,6 @@ public static class KernelPath
     {
         result = null!;
         var scope = current.Value;
-        if (scope is { Enabled: false }) return false;
         NDArray? r = f.DType switch
         {
             DType.Float16 => Gradient<Half>(f, axis, h, x),
@@ -688,7 +669,6 @@ public static class KernelPath
     {
         result = null!;
         var scope = current.Value;
-        if (scope is { Enabled: false }) return false;
         NDArray? r = y.DType switch
         {
             DType.Float16 => Trapezoid<Half>(y, axis, dx, x),

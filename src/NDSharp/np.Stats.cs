@@ -12,129 +12,25 @@ public static partial class np
 {
     // ================================================================ sorting
 
-    /// <summary>Orders NaN after every number (numpy's sort order); stable for equal values.</summary>
-    private readonly struct NanLastComparer<T> : IComparer<T> where T : unmanaged, INumber<T>
-    {
-        public int Compare(T x, T y)
-        {
-            bool nx = T.IsNaN(x), ny = T.IsNaN(y);
-            if (nx || ny) return nx == ny ? 0 : nx ? 1 : -1;
-            return x < y ? -1 : x > y ? 1 : 0;
-        }
-    }
-
-    /// <summary>
-    /// numpy's order for complex numbers: lexicographic (real, then imaginary), with NaNs last in this order:
-    /// <c>[R + Rj, R + nanj, nan + Rj, nan + nanj]</c>.
-    /// </summary>
-    private readonly struct ComplexComparer : IComparer<Complex>
-    {
-        private static int Rank(Complex z) => (double.IsNaN(z.Real) ? 2 : 0) + (double.IsNaN(z.Imaginary) ? 1 : 0);
-
-        public int Compare(Complex x, Complex y)
-        {
-            int rx = Rank(x), ry = Rank(y);
-            if (rx != ry) return rx < ry ? -1 : 1;
-            switch (rx)
-            {
-                case 0:
-                    if (x.Real != y.Real) return x.Real < y.Real ? -1 : 1;
-                    return x.Imaginary < y.Imaginary ? -1 : x.Imaginary > y.Imaginary ? 1 : 0;
-                case 1: return x.Real < y.Real ? -1 : x.Real > y.Real ? 1 : 0;           // imaginary part is NaN
-                case 2: return x.Imaginary < y.Imaginary ? -1 : x.Imaginary > y.Imaginary ? 1 : 0;   // real part is NaN
-                default: return 0;
-            }
-        }
-    }
-
-    private static NDArray Moved(NDArray a, int axis) => MoveAxis(a, axis, -1);
-
-    /// <summary>numpy <c>sort</c> along <paramref name="axis"/> (default last); <c>null</c> sorts the flattened array.</summary>
+    /// <summary>numpy <c>sort</c> along <paramref name="axis"/> (default last); <c>null</c> sorts the flattened array. Runs on the MathemaSharp sorting kernels: NaN last,
+    /// complex numbers in numpy's lexicographic order, not stable (as numpy's default sort).</summary>
     public static NDArray Sort(NDArray a, int? axis = -1)
     {
         if (axis is null) return Sort(Flatten(a), 0);
         if (a.Ndim == 0) throw new NDAxisException(axis.Value, 0);
         int ax = NormalizeAxis(axis.Value, a.Ndim);
         if (a.DType == DType.Bool) return Sort(a.AsType(DType.UInt8), ax).AsType(DType.Bool);
-        if (KernelPath.TrySort(a, ax, out var fastSort)) return fastSort;
-        var data = Moved(a, ax).Copy(); // contiguous, sorting axis last
-        int n = data.Shape[^1];
-        if (n > 1 && data.DType.IsComplex())
-        {
-            var buf = (Complex[])data.Buffer;
-            var cmp = new ComplexComparer();
-            for (int st = 0; st < buf.Length; st += n) Array.Sort(buf, st, n, cmp);
-        }
-        else if (n > 1)
-        {
-            // Dispatch on dtype, never on the CLR array type (byte[] is also an sbyte[]).
-            switch (data.DType.Storage())
-            {
-                case DType.Int8: SortLines((sbyte[])data.Buffer, n); break;
-                case DType.UInt8: SortLines((byte[])data.Buffer, n); break;
-                case DType.Int16: SortLines((short[])data.Buffer, n); break;
-                case DType.UInt16: SortLines((ushort[])data.Buffer, n); break;
-                case DType.Int32: SortLines((int[])data.Buffer, n); break;
-                case DType.UInt32: SortLines((uint[])data.Buffer, n); break;
-                case DType.Int64: SortLines((long[])data.Buffer, n); break;
-                case DType.UInt64: SortLines((ulong[])data.Buffer, n); break;
-                case DType.Float16: SortLines((Half[])data.Buffer, n); break;
-                case DType.Float32: SortLines((float[])data.Buffer, n); break;
-                default: SortLines((double[])data.Buffer, n); break;
-            }
-        }
-        return MoveAxis(data, -1, ax).Copy();
+        return KernelPath.TrySort(a, ax, out var sorted) ? sorted : throw new NDNotSupportedException($"sort is not implemented for {a.DType}");
     }
 
-    private static void SortLines<T>(T[] buf, int n) where T : unmanaged, INumber<T>
-    {
-        var cmp = new NanLastComparer<T>();
-        for (int s = 0; s < buf.Length; s += n) Array.Sort(buf, s, n, cmp);
-    }
-
-    /// <summary>numpy <c>argsort</c> (stable: equal values keep their index order; NaN last).</summary>
+    /// <summary>numpy <c>argsort</c> (stable: equal values keep their index order; NaN last; complex numbers in numpy's lexicographic order). Runs on the MathemaSharp sorting kernels.</summary>
     public static NDArray ArgSort(NDArray a, int? axis = -1)
     {
         if (axis is null) return ArgSort(Flatten(a), 0);
         if (a.Ndim == 0) throw new NDAxisException(axis.Value, 0);
         int ax = NormalizeAxis(axis.Value, a.Ndim);
-        if (KernelPath.TryArgSort(a.DType == DType.Bool ? a.AsType(DType.UInt8) : a, ax, out var fastArg)) return fastArg;
-        var moved = Moved(a.DType == DType.Bool ? a.AsType(DType.UInt8) : a, ax);
-        var data = moved.Copy();
-        int n = data.Shape[^1];
-        var result = new long[data.Size];
-        if (data.DType.IsComplex())
-        {
-            ArgSortComplexLines((Complex[])data.Buffer, n, result);
-            return MoveAxis(new NDArray(DType.Int64, result, (int[])data.Shape.Clone()), -1, ax).Copy();
-        }
-        switch (data.DType.Storage())
-        {
-            case DType.Int8: ArgSortLines((sbyte[])data.Buffer, n, result); break;
-            case DType.UInt8: ArgSortLines((byte[])data.Buffer, n, result); break;
-            case DType.Int16: ArgSortLines((short[])data.Buffer, n, result); break;
-            case DType.UInt16: ArgSortLines((ushort[])data.Buffer, n, result); break;
-            case DType.Int32: ArgSortLines((int[])data.Buffer, n, result); break;
-            case DType.UInt32: ArgSortLines((uint[])data.Buffer, n, result); break;
-            case DType.Int64: ArgSortLines((long[])data.Buffer, n, result); break;
-            case DType.UInt64: ArgSortLines((ulong[])data.Buffer, n, result); break;
-            case DType.Float16: ArgSortLines((Half[])data.Buffer, n, result); break;
-            case DType.Float32: ArgSortLines((float[])data.Buffer, n, result); break;
-            default: ArgSortLines((double[])data.Buffer, n, result); break;
-        }
-        return MoveAxis(new NDArray(DType.Int64, result, (int[])data.Shape.Clone()), -1, ax).Copy();
-    }
-
-    private static void ArgSortComplexLines(Complex[] buf, int n, long[] result)
-    {
-        if (n == 0) return;
-        var cmp = new ComplexComparer();
-        for (int s = 0; s < buf.Length; s += n)
-        {
-            int start = s;
-            var order = Enumerable.Range(0, n).OrderBy(i => buf[start + i], cmp).ToArray();   // OrderBy is stable
-            for (int i = 0; i < n; i++) result[s + i] = order[i];
-        }
+        var src = a.DType == DType.Bool ? a.AsType(DType.UInt8) : a;
+        return KernelPath.TryArgSort(src, ax, out var order) ? order : throw new NDNotSupportedException($"argsort is not implemented for {a.DType}");
     }
 
     /// <summary>
@@ -147,18 +43,6 @@ public static partial class np
         if (sorted.DType.IsComplex()) return sorted;
         var target = sorted.DType is DType.Int8 or DType.UInt8 or DType.Int16 or DType.UInt16 ? DType.Complex64 : DType.Complex128;
         return sorted.AsType(target);
-    }
-
-    private static void ArgSortLines<T>(T[] buf, int n, long[] result) where T : unmanaged, INumber<T>
-    {
-        if (n == 0) return;
-        var cmp = new NanLastComparer<T>();
-        for (int s = 0; s < buf.Length; s += n)
-        {
-            int start = s;
-            var order = Enumerable.Range(0, n).OrderBy(i => buf[start + i], cmp).ToArray();
-            for (int i = 0; i < n; i++) result[s + i] = order[i];
-        }
     }
 
     // ================================================================ sets & counting
@@ -248,26 +132,7 @@ public static partial class np
     {
         var axes = Red.NormalizeAxes(axis, a.Ndim);
         if (KernelPath.TryOrder(ForOrder(a), axes, keepdims, null, default, out var fast)) return fast;
-        var (flat, lead) = CollapseAxes(a, axes);
-        int n = flat.Shape[^1];
-        if (n == 0) return Full(Red.OutShape(a.Shape, axes, keepdims), double.NaN, DTypes.MeanResult(a.DType));
-        var s = Sort(flat, -1);
-        NDArray result;
-        if (n % 2 == 1)
-            result = s.Get(NDIndex.Ellipsis, n / 2);
-        else
-        {
-            var lo = s.Get(NDIndex.Ellipsis, n / 2 - 1);
-            var hi = s.Get(NDIndex.Ellipsis, n / 2);
-            result = Mean(Stack(new[] { lo, hi }, -1), new[] { -1 });
-        }
-        result = result.DType.IsFloat() ? result.Copy() : result.AsType(DType.Float64);
-        if (a.DType.IsFloat())
-        {
-            var hasNan = Any(IsNan(flat), new[] { -1 });
-            result = Where(hasNan, NDArray.WeakScalar(double.NaN), result);
-        }
-        return Reshape(result, Red.OutShape(a.Shape, axes, keepdims));
+        throw new NDNotSupportedException($"median is not implemented for {a.DType}");
     }
 
     /// <summary>Integers and bool are ordered as float64 (what numpy's median and percentile return for them); other dtypes are untouched.</summary>
@@ -292,18 +157,6 @@ public static partial class np
         _ => throw new NDValueException($"{method} is not a valid method. Use one of: inverted_cdf, averaged_inverted_cdf, closest_observation, interpolated_inverted_cdf, hazen, weibull, linear, median_unbiased, normal_unbiased, lower, higher, midpoint, nearest"),
     };
 
-    /// <summary>Moves the reduced axes last and merges them into one: returns (array[..., n], leading shape).</summary>
-    private static (NDArray, int[]) CollapseAxes(NDArray a, int[] axes)
-    {
-        var kept = Enumerable.Range(0, a.Ndim).Where(i => !axes.Contains(i)).ToArray();
-        var order = kept.Concat(axes).ToArray();
-        var t = Transpose(a, order).Copy();
-        var lead = kept.Select(i => a.Shape[i]).ToArray();
-        int n = 1;
-        foreach (var ax in axes) n *= a.Shape[ax];
-        return (Reshape(t, lead.Concat(new[] { n }).ToArray()), lead);
-    }
-
     /// <summary>numpy <c>percentile</c>/<c>quantile</c> (method 'linear'); <paramref name="q"/> in [0, 100] (or [0, 1] when <paramref name="isQuantile"/>).</summary>
     public static NDArray Percentile(NDArray a, NDArray q, int[]? axis = null, bool keepdims = false, bool isQuantile = false)
         => Percentile(a, q, axis, keepdims, isQuantile, "linear");
@@ -327,32 +180,11 @@ public static partial class np
             return Reshape(fast, q.Ndim == 0 ? shape : q.Shape.Concat(shape).ToArray());
         }
         if (nan == NanPolicy.Omit) throw new NDValueException("cannot compute a quantile of an empty slice");
-        if (method != "linear") throw new NDNotSupportedException($"quantile method '{method}' is only implemented for float32 and float64 data");
-        var (flat, lead) = CollapseAxes(a.DType.IsFloat() ? a : a.AsType(DType.Float64), axes);
-        int n = flat.Shape[^1];
-        var s = Sort(flat, -1);
-        var parts = new List<NDArray>();
-        foreach (var quantile in qv)
-        {
-            double vi = (n - 1) * quantile;
-            long prev = (long)Math.Floor(vi);
-            long next = Math.Min(prev + 1, n - 1);
-            double gamma = vi - prev;
-            var lo = s.Get(NDIndex.Ellipsis, (int)prev);
-            var hi = s.Get(NDIndex.Ellipsis, (int)next);
-            var diff = Subtract(hi, lo);
-            var t = NDArray.WeakScalar(gamma);
-            var lerp = Add(lo, Multiply(diff, t));
-            if (gamma >= 0.5)
-                lerp = Subtract(hi, Multiply(diff, NDArray.WeakScalar(1 - gamma)));
-            if (a.DType.IsFloat())
-                lerp = Where(Any(IsNan(flat), new[] { -1 }), NDArray.WeakScalar(double.NaN), lerp);
-            parts.Add(lerp);
-        }
-        var stacked = Stack(parts, 0);                                   // (nq, *lead)
-        var outShape = Red.OutShape(a.Shape, axes, keepdims);
-        if (q.Ndim == 0) return Reshape(stacked, outShape);
-        return Reshape(stacked, q.Shape.Concat(outShape).ToArray());
+        // the kernels leave out a slice with no element (numpy's percentile fails there: IndexError on position -1)
+        long reduced = 1;
+        foreach (var ax in axes) reduced *= a.Shape[ax];
+        if (reduced == 0) throw new NDIndexException("index -1 is out of bounds for axis 0 with size 0");
+        throw new NDNotSupportedException($"percentile is not implemented for {a.DType}");
     }
 
     // ================================================================ differences
@@ -389,26 +221,8 @@ public static partial class np
             int a0 = ax[k];
             int n = f.Shape[a0];
             if (n < 2) throw new NDValueException("Shape of array too small to calculate a numerical gradient, at least (edge_order + 1) elements are required.");
-            if (KernelPath.TryGradient(ft, a0, dx, null, out var kernelGradient)) { result.Add(kernelGradient); continue; }
-            NDArray Take(Slice s)
-            {
-                var idx = Enumerable.Repeat<NDIndex>(Slice.All, f.Ndim).ToArray();
-                idx[a0] = s;
-                return ft.Get(idx);
-            }
-            var outArr = np.Zeros(f.Shape, ft.DType);
-            void Put(NDArray v, Slice s)
-            {
-                var idx = Enumerable.Repeat<NDIndex>(Slice.All, f.Ndim).ToArray();
-                idx[a0] = s;
-                outArr.Put(v, idx);
-            }
-            var dxs = NDArray.WeakScalar(dx);
-            if (n > 2)
-                Put(Divide(Subtract(Take(new Slice(2, null)), Take(new Slice(null, -2))), NDArray.WeakScalar(2.0 * dx)), new Slice(1, -1));
-            Put(Divide(Subtract(Take(new Slice(1, 2)), Take(new Slice(0, 1))), dxs), new Slice(0, 1));
-            Put(Divide(Subtract(Take(new Slice(-1, null)), Take(new Slice(-2, -1))), dxs), new Slice(-1, null));
-            result.Add(outArr);
+            if (!KernelPath.TryGradient(ft, a0, dx, null, out var kernelGradient)) throw new NDNotSupportedException($"gradient is not implemented for {ft.DType}");
+            result.Add(kernelGradient);
         }
         return result.ToArray();
     }
@@ -435,20 +249,11 @@ public static partial class np
                 result.Add(Gradient(f, new[] { Convert.ToDouble(dxs.Get(0).AsType(DType.Float64).GetAt(0)) }, new[] { a0 })[0]);
                 continue;
             }
-            if (KernelPath.TryGradient(ft, a0, 0, x.DType.IsFloat() ? x : x.AsType(DType.Float64), out var kernelGradient)) { result.Add(kernelGradient); continue; }
-            int[] Shape1(int len) { var s = Enumerable.Repeat(1, f.Ndim).ToArray(); s[a0] = len; return s; }
-            NDArray Take(Slice s) { var idx = Enumerable.Repeat<NDIndex>(Slice.All, f.Ndim).ToArray(); idx[a0] = s; return ft.Get(idx); }
-            var dx1 = Reshape(dxs.Get(new Slice(0, n - 2)), Shape1(n - 2));
-            var dx2 = Reshape(dxs.Get(new Slice(1, null)), Shape1(n - 2));
-            var a = Negative(Divide(dx2, Multiply(dx1, Add(dx1, dx2))));
-            var b = Divide(Subtract(dx2, dx1), Multiply(dx1, dx2));
-            var c = Divide(dx1, Multiply(dx2, Add(dx1, dx2)));
-            var outArr = np.Zeros(f.Shape, ft.DType);
-            void Put(NDArray v, Slice s) { var idx = Enumerable.Repeat<NDIndex>(Slice.All, f.Ndim).ToArray(); idx[a0] = s; outArr.Put(v, idx); }
-            Put(Add(Add(Multiply(a, Take(new Slice(null, -2))), Multiply(b, Take(new Slice(1, -1)))), Multiply(c, Take(new Slice(2, null)))), new Slice(1, -1));
-            Put(Divide(Subtract(Take(new Slice(1, 2)), Take(new Slice(0, 1))), dxs.Get(new Slice(0, 1))), new Slice(0, 1));
-            Put(Divide(Subtract(Take(new Slice(-1, null)), Take(new Slice(-2, -1))), dxs.Get(new Slice(-1, null))), new Slice(-1, null));
-            result.Add(outArr);
+            // the positions and the data are processed in their common floating dtype and the result is returned in the data's dtype
+            var xf = x.DType.IsFloat() ? x : x.AsType(DType.Float64);
+            var common = DTypes.Promote(ft.DType, xf.DType);
+            if (!KernelPath.TryGradient(ft.CastTo(common), a0, 0, xf.CastTo(common), out var kernelGradient)) throw new NDNotSupportedException($"gradient is not implemented for {common}");
+            result.Add(common == ft.DType ? kernelGradient : kernelGradient.CastTo(ft.DType));
         }
         return result.ToArray();
     }
@@ -517,13 +322,7 @@ public static partial class np
         }
         int n = x.Shape[1];
         if (x.DType == DType.Float64 && KernelPath.TryCov(x, dd, out var fastCov)) return Squeeze(fastCov);
-        double fact = n - dd;
-        var avg = Mean(x, new[] { 1 });
-        var xc = Subtract(x, ExpandDims(avg, 1));
-        var c = MatMul(xc, Transpose(xc));
-        // numpy multiplies by the reciprocal (c *= true_divide(1, fact)); fact is floored at 0 (-> inf).
-        c = Multiply(c, NDArray.WeakScalar(1.0 / Math.Max(fact, 0.0)));
-        return Squeeze(c);
+        throw new NDNotSupportedException($"cov is not implemented for {x.DType}");
     }
 
     /// <summary>numpy <c>corrcoef</c>.</summary>
@@ -531,12 +330,7 @@ public static partial class np
     {
         var c = Cov(x, y, rowvar);
         if (c.Ndim == 0) return Divide(c, c);
-        if (KernelPath.TryCorrelation(c, out var fastCorr)) return fastCorr;
-        var d = Diagonal(c);
-        var std = Sqrt(d);
-        c = Divide(c, ExpandDims(std, 1));
-        c = Divide(c, ExpandDims(std, 0));
-        return Clip(c, NDArray.WeakScalar(-1.0), NDArray.WeakScalar(1.0));
+        return KernelPath.TryCorrelation(c, out var corr) ? corr : throw new NDNotSupportedException($"corrcoef is not implemented for {c.DType}");
     }
 }
 

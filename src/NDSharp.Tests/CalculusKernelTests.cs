@@ -35,16 +35,8 @@ public class CalculusKernelTests
         }
     }
 
-    static bool RunGradient(string at, Func<NDArray[]> call)
-    {
-        NDArray[] expected;
-        using (KernelPath.Begin(false)) expected = call();
-        using var on = KernelPath.Begin(true);
-        var got = call();
-        Assert.Equal(expected.Length, got.Length);
-        for (int i = 0; i < expected.Length; i++) KernelPathTests.SameBitsPublic(expected[i], got[i], $"gradient {at} #{i}");
-        return on.Calls > 0;
-    }
+    static bool RunGradient(string at, Func<NDArray[]> call, [System.Runtime.CompilerServices.CallerMemberName] string test = "")
+        => KernelPathTests.CompareMany("gradient " + at, call, test);
 
     [Theory, MemberData(nameof(DtypeCases))]
     public void GradientWithCoordinatesMatchesTheEngine(DType dtype)
@@ -83,7 +75,7 @@ public class CalculusKernelTests
             Assert.True(KernelPathTests.Compare("x " + at, () => np.Trapezoid(y, Positions(yf, n, false), 1.0, axis)), at);
         }
         foreach (var (name, v) in new[] { ("transposed", np.Transpose(y)), ("flipped", np.Flip(y, 1)) })
-            Assert.True(KernelPathTests.Compare("view " + name, () => np.Trapezoid(v, null, 0.5, 1)), name + dtype);
+            Assert.True(KernelPathTests.Compare($"view {name} {dtype}", () => np.Trapezoid(v, null, 0.5, 1)), name + dtype);
     }
 
     [Fact]
