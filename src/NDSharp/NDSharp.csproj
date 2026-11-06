@@ -10,7 +10,7 @@
     <!-- NuGet package metadata: a native .NET n-dimensional array library (numpy semantics),
          with no Python dependency. PySharp.Numpy binds it to the PySharp interpreter. -->
     <PackageId>NDSharp</PackageId>
-    <Version>2.8.1-net11-preview.2</Version>
+    <Version>2.8.1-net11-preview.3</Version>
     <Authors>Marco Parenzan</Authors>
     <Description>NDSharp — a native .NET n-dimensional array library with numpy semantics (typed dtypes, strided views, broadcasting, ufuncs, reductions, linalg). No Python dependency.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -19,4 +19,8 @@
     <RepositoryUrl>https://github.com/marcoparenzan/PySharp</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
   </PropertyGroup>
+  <ItemGroup>
+    <!-- The only reference NDSharp has: the BCL-only lane kernels. They answer the plain float64 reductions (KernelPath); the general engine answers the rest. -->
+    <ProjectReference Include="../../../MathemaSharp/src/libs/MathemaSharp.Kernels/MathemaSharp.Kernels.csproj" />
+  </ItemGroup>
 </Project>

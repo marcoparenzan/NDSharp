@@ -303,19 +303,39 @@ public static partial class np
 
     private static DType ReductionType(NDArray a, DType? dtype) => dtype ?? DTypes.SumResult(a.DType);
 
+    // sum, prod, max, min, mean, var, std, cumsum and cumprod run on the lane kernels of MathemaSharp.Kernels (KernelPath) for every real
+    // dtype except float16; the general engine (Red) answers float16, complex (through its parts), the temporal dtypes and the other functions.
+
     public static NDArray Sum(NDArray a, int[]? axis = null, bool keepdims = false, DType? dtype = null)
-        => a.DType.IsTimeDelta() ? Temporal.Reduce(a, x => Sum(x, axis, keepdims)) : a.DType.IsDateTime() ? throw new NDTypeException("ufunc 'add' cannot use operands with types dtype('" + a.DType.Name() + "') and dtype('" + a.DType.Name() + "')") : a.DType.IsComplex()
-            ? Cx.FromParts(Sum(Real(a), axis, keepdims), Sum(Imag(a), axis, keepdims), a.DType)
-            : Red.Fold<AddK>(a.CastTo(ReductionType(a, dtype)), Red.NormalizeAxes(axis, a.Ndim), keepdims, 0L, "add");
+    {
+        if (a.DType.IsTimeDelta()) return Temporal.Reduce(a, x => Sum(x, axis, keepdims));
+        if (a.DType.IsDateTime()) throw new NDTypeException("ufunc 'add' cannot use operands with types dtype('" + a.DType.Name() + "') and dtype('" + a.DType.Name() + "')");
+        if (a.DType.IsComplex()) return Cx.FromParts(Sum(Real(a), axis, keepdims), Sum(Imag(a), axis, keepdims), a.DType);
+        var src = a.CastTo(ReductionType(a, dtype));
+        var axes = Red.NormalizeAxes(axis, a.Ndim);
+        return KernelPath.TryReduce(KernelPath.Op.Sum, src, axes, keepdims, 0, out var fast) ? fast : Red.Fold<AddK>(src, axes, keepdims, 0L, "add");
+    }
 
     public static NDArray Prod(NDArray a, int[]? axis = null, bool keepdims = false, DType? dtype = null)
-        => Red.Fold<MulK>(a.CastTo(ReductionType(a, dtype)), Red.NormalizeAxes(axis, a.Ndim), keepdims, 1L, "multiply");
+    {
+        var src = a.CastTo(ReductionType(a, dtype));
+        var axes = Red.NormalizeAxes(axis, a.Ndim);
+        return KernelPath.TryReduce(KernelPath.Op.Prod, src, axes, keepdims, 0, out var fast) ? fast : Red.Fold<MulK>(src, axes, keepdims, 1L, "multiply");
+    }
 
     public static NDArray Max(NDArray a, int[]? axis = null, bool keepdims = false)
-        => a.DType.IsTemporal() ? Temporal.Reduce(a, x => Max(x, axis, keepdims)) : Red.Fold<MaxK>(a, Red.NormalizeAxes(axis, a.Ndim), keepdims, null, "maximum");
+        => a.DType.IsTemporal() ? Temporal.Reduce(a, x => Max(x, axis, keepdims)) : Extremum(a, axis, keepdims, KernelPath.Op.Max);
 
     public static NDArray Min(NDArray a, int[]? axis = null, bool keepdims = false)
-        => a.DType.IsTemporal() ? Temporal.Reduce(a, x => Min(x, axis, keepdims)) : Red.Fold<MinK>(a, Red.NormalizeAxes(axis, a.Ndim), keepdims, null, "minimum");
+        => a.DType.IsTemporal() ? Temporal.Reduce(a, x => Min(x, axis, keepdims)) : Extremum(a, axis, keepdims, KernelPath.Op.Min);
+
+    private static NDArray Extremum(NDArray a, int[]? axis, bool keepdims, KernelPath.Op op)
+    {
+        var axes = Red.NormalizeAxes(axis, a.Ndim);
+        bool isBool = a.DType == DType.Bool;
+        if (KernelPath.TryReduce(op, isBool ? a.CastTo(DType.UInt8) : a, axes, keepdims, 0, out var fast)) return isBool ? fast.CastTo(DType.Bool) : fast;
+        return op == KernelPath.Op.Max ? Red.Fold<MaxK>(a, axes, keepdims, null, "maximum") : Red.Fold<MinK>(a, axes, keepdims, null, "minimum");
+    }
 
     /// <summary>Peak-to-peak (max − min).</summary>
     public static NDArray Ptp(NDArray a, int[]? axis = null, bool keepdims = false)
@@ -330,8 +350,17 @@ public static partial class np
     public static NDArray ArgMax(NDArray a, int? axis = null, bool keepdims = false) => Red.ArgBest(a, axis, keepdims, true);
     public static NDArray ArgMin(NDArray a, int? axis = null, bool keepdims = false) => Red.ArgBest(a, axis, keepdims, false);
 
-    public static NDArray CumSum(NDArray a, int? axis = null, DType? dtype = null) => Red.Cumulate<AddK>(a, axis, dtype);
-    public static NDArray CumProd(NDArray a, int? axis = null, DType? dtype = null) => Red.Cumulate<MulK>(a, axis, dtype);
+    public static NDArray CumSum(NDArray a, int? axis = null, DType? dtype = null) => Cumulative(a, axis, dtype, KernelPath.Op.CumSum);
+    public static NDArray CumProd(NDArray a, int? axis = null, DType? dtype = null) => Cumulative(a, axis, dtype, KernelPath.Op.CumProd);
+
+    private static NDArray Cumulative(NDArray a, int? axis, DType? dtype, KernelPath.Op op)
+    {
+        var rt = dtype ?? DTypes.SumResult(a.DType);
+        var src = a.CastTo(rt);
+        int ax = axis is null ? 0 : NormalizeAxis(axis.Value, a.Ndim);   // the same check, and error, as the general engine
+        if (KernelPath.TryScan(op, src, axis is null ? null : ax, out var fast)) return fast;
+        return op == KernelPath.Op.CumSum ? Red.Cumulate<AddK>(a, axis, dtype) : Red.Cumulate<MulK>(a, axis, dtype);
+    }
 
     // ================================================================ mean / var / std
 
@@ -348,7 +377,9 @@ public static partial class np
         if (a.DType.IsComplex())
             return Cx.FromParts(Mean(Real(a), axis, keepdims), Mean(Imag(a), axis, keepdims), a.DType);
         var dt = dtype ?? DTypes.MeanResult(a.DType);
-        var s = Red.Fold<AddK>(a.CastTo(dt), axes, keepdims, 0L, "add");
+        var src = a.CastTo(dt);
+        if (KernelPath.TryReduce(KernelPath.Op.Mean, src, axes, keepdims, 0, out var fast)) return fast;
+        var s = Red.Fold<AddK>(src, axes, keepdims, 0L, "add");
         return Ew.Float<DivF>(s, CountOf(a, axes, dt), dt);
     }
 
@@ -358,6 +389,7 @@ public static partial class np
         var axes = Red.NormalizeAxes(axis, a.Ndim);
         var dt = DTypes.MeanResult(a.DType);
         var af = a.CastTo(dt);
+        if (KernelPath.TryReduce(KernelPath.Op.Var, af, axes, keepdims, ddof, out var fast)) return fast;
         var n = CountOf(a, axes, dt);
         var mean = Ew.Float<DivF>(Red.Fold<AddK>(af, axes, true, 0L, "add"), n, dt);
         var x = Subtract(af, mean);

@@ -64,7 +64,7 @@ does not preserve NDArray Base/Tag wrapper identity. This is not a language adap
 
 `DType` and related helpers describe numeric types and promotion/casting rules. The `np` partial class forms the NumPy-shaped public facade, split into creation, shape operations, elementwise operations, products, statistics, and linear algebra files. Implementation helpers handle broadcasting, indexing, assignment, casting, and row traversal.
 
-The core also contains complex and temporal operations, reduction kernels, FFT, eigendecomposition, and PCG64-based random generation. It has no external package references in its project file and no Python runtime dependency. Some implementation paths use unsafe code; the project explicitly enables it.
+The core also contains complex and temporal operations, reduction kernels, FFT, eigendecomposition, and PCG64-based random generation. Its only reference is the BCL-only `MathemaSharp.Kernels` project (`KernelPath`, added 2026-11-06: the reductions and scans `sum prod max min mean var std cumsum cumprod` run on it; the engine in `Reduce.cs` keeps float16, complex, temporal dtypes and the other functions); it has no external package references and no Python runtime dependency. Some implementation paths use unsafe code; the project explicitly enables it.
 
 Views are an ownership consideration: consumers should not assume a new array-shaped result always owns independent storage. `Copy()` provides an explicit isolation boundary.
 

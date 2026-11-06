@@ -244,6 +244,7 @@ public static partial class np
     public static NDArray Median(NDArray a, int[]? axis = null, bool keepdims = false)
     {
         var axes = Red.NormalizeAxes(axis, a.Ndim);
+        if (KernelPath.TryOrder(ForOrder(a), axes, keepdims, null, default, out var fast)) return fast;
         var (flat, lead) = CollapseAxes(a, axes);
         int n = flat.Shape[^1];
         if (n == 0) return Full(Red.OutShape(a.Shape, axes, keepdims), double.NaN, DTypes.MeanResult(a.DType));
@@ -266,6 +267,28 @@ public static partial class np
         return Reshape(result, Red.OutShape(a.Shape, axes, keepdims));
     }
 
+    /// <summary>Integers and bool are ordered as float64 (what numpy's median and percentile return for them); other dtypes are untouched.</summary>
+    private static NDArray ForOrder(NDArray a) => a.DType.Kind() is 'b' or 'i' or 'u' ? a.CastTo(DType.Float64) : a;
+
+    /// <summary>numpy's <c>method=</c> names, as the kernels' <see cref="MathemaSharp.Kernels.QuantileMethod"/>.</summary>
+    private static MathemaSharp.Kernels.QuantileMethod QuantileMethodOf(string method) => method switch
+    {
+        "linear" => MathemaSharp.Kernels.QuantileMethod.Linear,
+        "inverted_cdf" => MathemaSharp.Kernels.QuantileMethod.InvertedCdf,
+        "averaged_inverted_cdf" => MathemaSharp.Kernels.QuantileMethod.AveragedInvertedCdf,
+        "interpolated_inverted_cdf" => MathemaSharp.Kernels.QuantileMethod.InterpolatedInvertedCdf,
+        "hazen" => MathemaSharp.Kernels.QuantileMethod.Hazen,
+        "weibull" => MathemaSharp.Kernels.QuantileMethod.Weibull,
+        "median_unbiased" => MathemaSharp.Kernels.QuantileMethod.MedianUnbiased,
+        "normal_unbiased" => MathemaSharp.Kernels.QuantileMethod.NormalUnbiased,
+        "lower" => MathemaSharp.Kernels.QuantileMethod.Lower,
+        "higher" => MathemaSharp.Kernels.QuantileMethod.Higher,
+        "midpoint" => MathemaSharp.Kernels.QuantileMethod.Midpoint,
+        "nearest" => MathemaSharp.Kernels.QuantileMethod.Nearest,
+        "closest_observation" => MathemaSharp.Kernels.QuantileMethod.ClosestObservation,
+        _ => throw new NDValueException($"{method} is not a valid method. Use one of: inverted_cdf, averaged_inverted_cdf, closest_observation, interpolated_inverted_cdf, hazen, weibull, linear, median_unbiased, normal_unbiased, lower, higher, midpoint, nearest"),
+    };
+
     /// <summary>Moves the reduced axes last and merges them into one: returns (array[..., n], leading shape).</summary>
     private static (NDArray, int[]) CollapseAxes(NDArray a, int[] axes)
     {
@@ -280,11 +303,24 @@ public static partial class np
 
     /// <summary>numpy <c>percentile</c>/<c>quantile</c> (method 'linear'); <paramref name="q"/> in [0, 100] (or [0, 1] when <paramref name="isQuantile"/>).</summary>
     public static NDArray Percentile(NDArray a, NDArray q, int[]? axis = null, bool keepdims = false, bool isQuantile = false)
+        => Percentile(a, q, axis, keepdims, isQuantile, "linear");
+
+    /// <summary>numpy <c>percentile</c>/<c>quantile</c> with a <c>method</c>: <c>linear</c> (numpy's default), <c>inverted_cdf</c>, <c>averaged_inverted_cdf</c>,
+    /// <c>interpolated_inverted_cdf</c>, <c>hazen</c>, <c>weibull</c>, <c>median_unbiased</c>, <c>normal_unbiased</c>, <c>lower</c>, <c>higher</c>, <c>midpoint</c>, <c>nearest</c>
+    /// (all of numpy's). Every method needs float32 or float64 data, or integers and bool, which are ordered as float64.</summary>
+    public static NDArray Percentile(NDArray a, NDArray q, int[]? axis, bool keepdims, bool isQuantile, string method)
     {
+        var quantileMethod = QuantileMethodOf(method);
         var axes = Red.NormalizeAxes(axis, a.Ndim);
         var qs = q.AsType(DType.Float64);
         var qv = qs.ToArray<double>().Select(v => isQuantile ? v : v / 100.0).ToArray();
         if (qv.Any(v => v < 0 || v > 1)) throw new NDValueException(isQuantile ? "Quantiles must be in the range [0, 1]" : "Percentiles must be in the range [0, 100]");
+        if (KernelPath.TryOrder(ForOrder(a), axes, keepdims, qv, quantileMethod, out var fast))
+        {
+            var shape = Red.OutShape(a.Shape, axes, keepdims);
+            return Reshape(fast, q.Ndim == 0 ? shape : q.Shape.Concat(shape).ToArray());
+        }
+        if (method != "linear") throw new NDNotSupportedException($"quantile method '{method}' is only implemented for float32 and float64 data");
         var (flat, lead) = CollapseAxes(a.DType.IsFloat() ? a : a.AsType(DType.Float64), axes);
         int n = flat.Shape[^1];
         var s = Sort(flat, -1);
