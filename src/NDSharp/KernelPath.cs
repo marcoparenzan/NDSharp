@@ -309,6 +309,7 @@ public static class KernelPath
             DType.Float16 => SortOf<Half>(a, axis),
             DType.Float32 => SortOf<float>(a, axis),
             DType.Float64 => SortOf<double>(a, axis),
+            DType.Complex64 or DType.Complex128 => SortComplexOf(a, axis),
             _ => null,
         }, out result, NanPolicy.Propagate);
 
@@ -327,6 +328,7 @@ public static class KernelPath
             DType.Float16 => ArgSortOf<Half>(a, axis),
             DType.Float32 => ArgSortOf<float>(a, axis),
             DType.Float64 => ArgSortOf<double>(a, axis),
+            DType.Complex64 or DType.Complex128 => ArgSortComplexOf(a, axis),
             _ => null,
         }, out result, NanPolicy.Propagate);
 
@@ -342,6 +344,48 @@ public static class KernelPath
             Sorting.Sort<T>(Window(buffer, offset, lane), lane, values);
         }
         return new NDArray(a.DType, values, shape);
+    }
+
+    static NDArray? SortComplexOf(NDArray a, int axis)
+    {
+        if (!Active) return null;
+        var shape = (int[])a.Shape.Clone();
+        var values = new Complex[a.Size];
+        if (a.Size > 0)
+        {
+            var buffer = CContiguous<Complex>(a, out int offset);
+            var lane = Lane.ForRowMajorAxis(shape, axis);
+            Sorting.SortComplex(Window(buffer, offset, lane), lane, values);
+        }
+        return new NDArray(a.DType, values, shape);
+    }
+
+    static NDArray? ArgSortComplexOf(NDArray a, int axis)
+    {
+        if (!Active) return null;
+        var shape = (int[])a.Shape.Clone();
+        var order = new int[a.Size];
+        if (a.Size > 0)
+        {
+            var buffer = CContiguous<Complex>(a, out int offset);
+            var lane = Lane.ForRowMajorAxis(shape, axis);
+            Sorting.ArgSortComplex(Window(buffer, offset, lane), lane, order);
+        }
+        var result = new long[order.Length];
+        for (int i = 0; i < result.Length; i++) result[i] = order[i];
+        return new NDArray(DType.Int64, result, shape);
+    }
+
+    static NDArray SearchComplex(NDArray sorted, NDArray values, bool right)
+    {
+        var s = CContiguous<Complex>(sorted, out int so);
+        var v = CContiguous<Complex>(values, out int vo);
+        var found = new int[values.Size];
+        Sorting.SearchSortedComplex(s.AsSpan(so, sorted.Size), v.AsSpan(vo, values.Size), found, right ? SearchSide.Right : SearchSide.Left);
+        var result = new long[found.Length];
+        for (int i = 0; i < result.Length; i++) result[i] = found[i];
+        CountCall();
+        return new NDArray(DType.Int64, result, (int[])values.Shape.Clone());
     }
 
     static NDArray? ArgSortOf<T>(NDArray a, int axis) where T : unmanaged, INumber<T>
@@ -375,6 +419,7 @@ public static class KernelPath
         DType.Float16 => Search<Half>(sorted, values, right),
         DType.Float32 => Search<float>(sorted, values, right),
         DType.Float64 => Search<double>(sorted, values, right),
+        DType.Complex64 or DType.Complex128 => SearchComplex(sorted, values, right),
         _ => null,
     };
 

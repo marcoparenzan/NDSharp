@@ -48,10 +48,10 @@ public class SortingKernelTests
         Assert.True(KernelPathTests.Compare("argsort empty", () => np.ArgSort(NDArray.FromArray(Array.Empty<double>(), 0))));
         KernelPathTests.Compare("0-d", () => np.Sort(NDArray.Scalar(1.0)));
         KernelPathTests.Compare("bad axis", () => np.Sort(Repeated(DType.Int32, 3, 3), 2));
-        // complex stays on the engine (numpy's lexicographic order is not a real-number order)
+        // complex numbers sort too, in numpy's lexicographic order
         using var scope = KernelPath.Begin(true);
         _ = np.Sort(np.Zeros(new[] { 4 }, DType.Complex128));
-        Assert.Equal(0, scope.Calls);
+        Assert.Equal(1, scope.Calls);
     }
 
     [Fact]
@@ -134,6 +134,128 @@ public class SortingKernelTests
         Assert.Throws<NDValueException>(() => np.SearchSorted(a, a, "middle"));
         Assert.Throws<NDValueException>(() => np.SearchSorted(np.Zeros(new[] { 2, 2 }, DType.Float64), a));
         Assert.Throws<NDValueException>(() => np.SearchSorted(a, a, "left", NDArray.FromArray(new long[] { 0 }, 1)));
-        Assert.Throws<NDNotSupportedException>(() => np.SearchSorted(np.Zeros(new[] { 2 }, DType.Complex128), a));
+        var days = NDArray.FromArray(new[] { 1.0 }, 1).AsType(DType.DateTime64D);
+        Assert.Throws<NDNotSupportedException>(() => np.SearchSorted(days, days));   // dates are not searched here
+    }
+
+    // ------------------------------------------------------------------ complex, partition, lexsort
+
+    static NDArray ComplexData(DType dtype, params int[] shape)
+    {
+        int n = 1; foreach (var x in shape) n *= x;
+        var d = new System.Numerics.Complex[n];
+        for (int i = 0; i < n; i++) d[i] = new System.Numerics.Complex(((i * 7) % 5) - 2, ((i * 3) % 4) - 1);   // many repeated values
+        if (n > 20) { d[2] = new(double.NaN, 1); d[5] = new(1, double.NaN); d[9] = new(double.NaN, double.NaN); d[11] = new(double.NaN, -3); d[14] = new(2, double.NaN); }
+        return NDArray.FromArray(d, shape).AsType(dtype);
+    }
+
+    [Theory]
+    [InlineData(DType.Complex128)]
+    [InlineData(DType.Complex64)]
+    public void ComplexSortArgSortAndUniqueMatchTheEngine(DType dtype)
+    {
+        var a = ComplexData(dtype, 4, 5, 6);
+        foreach (int? axis in new int?[] { null, 0, 1, 2, -1 })
+        {
+            Assert.True(KernelPathTests.Compare($"sort {dtype} axis={axis}", () => np.Sort(a, axis)));
+            Assert.True(KernelPathTests.Compare($"argsort {dtype} axis={axis}", () => np.ArgSort(a, axis)));
+        }
+        Assert.True(KernelPathTests.Compare("sort transposed", () => np.Sort(np.Transpose(a), 1)));
+        NDArray[] Parts() { var u = np.Unique(a, true, true, true); return new[] { u.Values, u.Index!, u.Inverse!, u.Counts! }; }
+        NDArray[] expected;
+        using (KernelPath.Begin(false)) expected = Parts();
+        using var on = KernelPath.Begin(true);
+        var got = Parts();
+        for (int i = 0; i < expected.Length; i++) KernelPathTests.SameBitsPublic(expected[i], got[i], $"unique {dtype} #{i}");
+        Assert.True(on.Calls > 0);
+    }
+
+    [Fact]
+    public void ComplexSearchSorted()
+    {
+        var sorted = NDArray.FromArray(new[] { new System.Numerics.Complex(0, 0), new(0, 5), new(0, 5), new(1, 1), new(1, double.NaN), new(double.NaN, 0) }, 6);
+        var values = NDArray.FromArray(new[] { new System.Numerics.Complex(0, 5), new(0, 6), new(2, 0), new(1, double.NaN), new(double.NaN, 1) }, 5);
+        Assert.Equal(new long[] { 1, 3, 4, 4, 6 }, np.SearchSorted(sorted, values).Copy().Data<long>());
+        Assert.Equal(new long[] { 3, 3, 4, 5, 6 }, np.SearchSorted(sorted, values, "right").Copy().Data<long>());
+    }
+
+    [Fact]
+    public void PartitionKeepsTheKthElementAndTheOrderAroundIt()
+    {
+        var rnd = new System.Random(11);
+        var data = Enumerable.Range(0, 3 * 40).Select(_ => (double)rnd.Next(-20, 20)).ToArray();
+        data[5] = double.NaN; data[70] = double.NaN;
+        var a = NDArray.FromArray(data, 3, 40);
+        foreach (var kth in new[] { new[] { 0 }, new[] { 7 }, new[] { -1 }, new[] { 3, 20, 39 }, new[] { -40 } })
+        {
+            using var on = KernelPath.Begin(true);
+            var p = np.Partition(a, kth, 1);
+            var sorted = np.Sort(a, 1).Copy().Data<double>();
+            var got = p.Copy().Data<double>();
+            for (int row = 0; row < 3; row++)
+                foreach (var k in kth)
+                {
+                    int pos = (k + 40) % 40;
+                    var line = got.AsSpan(row * 40, 40);
+                    double pivot = sorted[row * 40 + pos];
+                    Assert.True(line[pos].Equals(pivot));
+                    for (int i = 0; i < 40; i++)
+                    {
+                        if (i < pos) Assert.True(double.IsNaN(pivot) || (!double.IsNaN(line[i]) && line[i] <= pivot));    // nothing larger before it (NaN is the largest)
+                        if (i > pos) Assert.True(double.IsNaN(line[i]) || (!double.IsNaN(pivot) && line[i] >= pivot));    // nothing smaller after it
+                    }
+                }
+        }
+        Assert.Throws<NDValueException>(() => np.Partition(a, 40, 1));
+        Assert.Throws<NDValueException>(() => np.Partition(a, -41, 1));
+        Assert.Throws<NDValueException>(() => np.ArgPartition(a, new[] { 0, 99 }, 1));
+    }
+
+    [Fact]
+    public void ArgPartitionShapesAndFlattened()
+    {
+        var a = NDArray.FromArray(new[] { 5.0, 1.0, 4.0, 2.0, 3.0, 9.0 }, 3, 2);
+        Assert.Equal(new[] { 3, 2 }, np.ArgPartition(a, 1, 0).Shape);
+        Assert.Equal(new[] { 6 }, np.ArgPartition(a, 2, null).Shape);
+        Assert.Equal(new[] { 1.0, 2.0, 3.0, 4.0, 5.0, 9.0 }, np.Partition(a, 2, null).Copy().Data<double>());
+        Assert.Equal(new long[] { 0, 1, 2 }, np.ArgPartition(NDArray.FromArray(new[] { 1, 2, 3 }, 3), 1).Copy().Data<long>());
+    }
+
+    static long[] LexReference(double[][] keys, int n)
+    {
+        // the last key is primary: stable sort by each key from the first to the last
+        IEnumerable<int> ordered = Enumerable.Range(0, n);
+        foreach (var key in keys) ordered = ordered.OrderBy(i => key[i]);
+        return ordered.Select(i => (long)i).ToArray();
+    }
+
+    [Fact]
+    public void LexSortOneDimensionalKeys()
+    {
+        var rnd = new System.Random(5);
+        double[] a = Enumerable.Range(0, 60).Select(_ => (double)rnd.Next(0, 4)).ToArray();
+        double[] b = Enumerable.Range(0, 60).Select(_ => (double)rnd.Next(0, 3)).ToArray();
+        double[] c = Enumerable.Range(0, 60).Select(_ => (double)rnd.Next(0, 5)).ToArray();
+        using var on = KernelPath.Begin(true);
+        var keys = new List<NDArray> { NDArray.FromArray(a, 60), NDArray.FromArray(b, 60), NDArray.FromArray(c, 60) };
+        Assert.Equal(LexReference(new[] { a, b, c }, 60), np.LexSort(keys).Copy().Data<long>());
+        Assert.Equal(LexReference(new[] { a, b, c }, 60), np.LexSort(NDArray.FromArray(a.Concat(b).Concat(c).ToArray(), 3, 60)).Copy().Data<long>());
+        // sorted by the second key (the primary), ties by the first: keys (1,5,1,4,3,4,4) and (9,4,0,4,0,2,1)
+        var ind = np.LexSort(new List<NDArray> { NDArray.FromArray(new[] { 1.0, 5.0, 1.0, 4.0, 3.0, 4.0, 4.0 }, 7), NDArray.FromArray(new[] { 9.0, 4.0, 0.0, 4.0, 0.0, 2.0, 1.0 }, 7) });
+        Assert.Equal(new long[] { 2, 4, 6, 5, 3, 1, 0 }, ind.Copy().Data<long>());
+    }
+
+    [Fact]
+    public void LexSortAlongAnAxisAndErrors()
+    {
+        var k1 = NDArray.FromArray(new[] { 2.0, 1.0, 1.0, 0.0, 5.0, 5.0 }, 2, 3);
+        var k2 = NDArray.FromArray(new[] { 0.0, 0.0, 0.0, 9.0, 8.0, 7.0 }, 2, 3);
+        var r = np.LexSort(new List<NDArray> { k1, k2 }, 1);           // each row: primary k2, then k1
+        Assert.Equal(new[] { 2, 3 }, r.Shape);
+        Assert.Equal(new long[] { 1, 2, 0, 2, 1, 0 }, r.Copy().Data<long>());
+        Assert.Equal(new long[] { 1, 0 }, np.LexSort(new List<NDArray> { NDArray.FromArray(new[] { 2.0, 1.0 }, 2) }).Copy().Data<long>());
+        Assert.Throws<NDValueException>(() => np.LexSort(new List<NDArray>()));
+        Assert.Throws<NDValueException>(() => np.LexSort(new List<NDArray> { k1, NDArray.FromArray(new[] { 1.0, 2.0 }, 2) }));
+        Assert.Empty(np.LexSort(new List<NDArray> { NDArray.FromArray(Array.Empty<double>(), 0) }).Copy().Data<long>());
     }
 }
