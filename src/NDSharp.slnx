@@ -12,5 +12,7 @@
   <Project Path="NDSharp.Cli.Tests/NDSharp.Cli.Tests.csproj" />
   <Project Path="NDSharp.Image.Tests/NDSharp.Image.Tests.csproj" />
   <Project Path="NDSharp.Wavelets/NDSharp.Wavelets.csproj" />
+  <Project Path="NDSharp.Mathema/NDSharp.Mathema.csproj" />
+  <Project Path="NDSharp.Mathema.Tests/NDSharp.Mathema.Tests.csproj" />
 </Solution>
 

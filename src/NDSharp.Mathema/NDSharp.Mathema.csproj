@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net11.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PackageId>NDSharp.Mathema</PackageId>
+    <Version>0.1.0-net11-preview.1</Version>
+    <Authors>Marco Parenzan</Authors>
+    <Description>Bridge from NDSharp (ndarray with NumPy semantics) to the MathemaSharp libraries: T[], T[,] and Complex&lt;double&gt;[] for every IEEE Generic Math format, and typed linear algebra on NDArray. NDSharp depends on MathemaSharp, not the other way round: this project used to be MathemaSharp.NDSharp.</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <!-- NDSharp.dll next to the bridge in the output: needed by the notebooks' #r directives. -->
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\NDSharp\NDSharp.csproj" />
+    <!-- Private=false: the notebooks load MathemaSharp.LinearAlgebra from the MathemaSharp build; a second copy next to the bridge makes the script loader refuse the second identical identity. -->
+    <ProjectReference Include="../../../MathemaSharp/src/libs/MathemaSharp.LinearAlgebra/MathemaSharp.LinearAlgebra.csproj" Private="false" />
+  </ItemGroup>
+</Project>
