@@ -56,6 +56,7 @@ public static partial class np
         if (a.Ndim == 0) throw new NDAxisException(axis.Value, 0);
         int ax = NormalizeAxis(axis.Value, a.Ndim);
         if (a.DType == DType.Bool) return Sort(a.AsType(DType.UInt8), ax).AsType(DType.Bool);
+        if (KernelPath.TrySort(a, ax, out var fastSort)) return fastSort;
         var data = Moved(a, ax).Copy(); // contiguous, sorting axis last
         int n = data.Shape[^1];
         if (n > 1 && data.DType.IsComplex())
@@ -97,6 +98,7 @@ public static partial class np
         if (axis is null) return ArgSort(Flatten(a), 0);
         if (a.Ndim == 0) throw new NDAxisException(axis.Value, 0);
         int ax = NormalizeAxis(axis.Value, a.Ndim);
+        if (KernelPath.TryArgSort(a.DType == DType.Bool ? a.AsType(DType.UInt8) : a, ax, out var fastArg)) return fastArg;
         var moved = Moved(a.DType == DType.Bool ? a.AsType(DType.UInt8) : a, ax);
         var data = moved.Copy();
         int n = data.Shape[^1];

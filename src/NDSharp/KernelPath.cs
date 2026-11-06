@@ -292,6 +292,104 @@ public static class KernelPath
         return new NDArray(a.DType, values, new[] { q.Length }.Concat(outShape).ToArray());
     }
 
+    // ------------------------------------------------------------------ sort, argsort, searchsorted
+
+    /// <summary>Tries the kernel for <c>sort</c> of a real array along <paramref name="axis"/> (normalised): NaN last, not stable. Bool must be cast to uint8 by the caller.</summary>
+    internal static bool TrySort(NDArray a, int axis, out NDArray result)
+        => Finish(a.DType switch
+        {
+            DType.Int8 => SortOf<sbyte>(a, axis),
+            DType.UInt8 => SortOf<byte>(a, axis),
+            DType.Int16 => SortOf<short>(a, axis),
+            DType.UInt16 => SortOf<ushort>(a, axis),
+            DType.Int32 => SortOf<int>(a, axis),
+            DType.UInt32 => SortOf<uint>(a, axis),
+            DType.Int64 => SortOf<long>(a, axis),
+            DType.UInt64 => SortOf<ulong>(a, axis),
+            DType.Float16 => SortOf<Half>(a, axis),
+            DType.Float32 => SortOf<float>(a, axis),
+            DType.Float64 => SortOf<double>(a, axis),
+            _ => null,
+        }, out result, NanPolicy.Propagate);
+
+    /// <summary>Tries the kernel for the stable <c>argsort</c> (int64 result). Bool must be cast to uint8 by the caller.</summary>
+    internal static bool TryArgSort(NDArray a, int axis, out NDArray result)
+        => Finish(a.DType switch
+        {
+            DType.Int8 => ArgSortOf<sbyte>(a, axis),
+            DType.UInt8 => ArgSortOf<byte>(a, axis),
+            DType.Int16 => ArgSortOf<short>(a, axis),
+            DType.UInt16 => ArgSortOf<ushort>(a, axis),
+            DType.Int32 => ArgSortOf<int>(a, axis),
+            DType.UInt32 => ArgSortOf<uint>(a, axis),
+            DType.Int64 => ArgSortOf<long>(a, axis),
+            DType.UInt64 => ArgSortOf<ulong>(a, axis),
+            DType.Float16 => ArgSortOf<Half>(a, axis),
+            DType.Float32 => ArgSortOf<float>(a, axis),
+            DType.Float64 => ArgSortOf<double>(a, axis),
+            _ => null,
+        }, out result, NanPolicy.Propagate);
+
+    static NDArray? SortOf<T>(NDArray a, int axis) where T : unmanaged, INumber<T>
+    {
+        if (!Active) return null;
+        var shape = (int[])a.Shape.Clone();
+        var values = new T[a.Size];
+        if (a.Size > 0)
+        {
+            var buffer = CContiguous<T>(a, out int offset);
+            var lane = Lane.ForRowMajorAxis(shape, axis);
+            Sorting.Sort<T>(Window(buffer, offset, lane), lane, values);
+        }
+        return new NDArray(a.DType, values, shape);
+    }
+
+    static NDArray? ArgSortOf<T>(NDArray a, int axis) where T : unmanaged, INumber<T>
+    {
+        if (!Active) return null;
+        var shape = (int[])a.Shape.Clone();
+        var order = new int[a.Size];
+        if (a.Size > 0)
+        {
+            var buffer = CContiguous<T>(a, out int offset);
+            var lane = Lane.ForRowMajorAxis(shape, axis);
+            Sorting.ArgSort<T>(Window(buffer, offset, lane), lane, order);
+        }
+        var result = new long[order.Length];
+        for (int i = 0; i < result.Length; i++) result[i] = order[i];
+        return new NDArray(DType.Int64, result, shape);
+    }
+
+    /// <summary>The binary search of <paramref name="values"/> in the sorted 1-D <paramref name="sorted"/>, both already cast to one real dtype (not bool). There is no other implementation,
+    /// so the on/off switch does not apply. Returns null for a dtype the kernels do not take.</summary>
+    internal static NDArray? SearchSorted(NDArray sorted, NDArray values, bool right) => sorted.DType switch
+    {
+        DType.Int8 => Search<sbyte>(sorted, values, right),
+        DType.UInt8 => Search<byte>(sorted, values, right),
+        DType.Int16 => Search<short>(sorted, values, right),
+        DType.UInt16 => Search<ushort>(sorted, values, right),
+        DType.Int32 => Search<int>(sorted, values, right),
+        DType.UInt32 => Search<uint>(sorted, values, right),
+        DType.Int64 => Search<long>(sorted, values, right),
+        DType.UInt64 => Search<ulong>(sorted, values, right),
+        DType.Float16 => Search<Half>(sorted, values, right),
+        DType.Float32 => Search<float>(sorted, values, right),
+        DType.Float64 => Search<double>(sorted, values, right),
+        _ => null,
+    };
+
+    static NDArray Search<T>(NDArray sorted, NDArray values, bool right) where T : unmanaged, INumber<T>
+    {
+        var s = CContiguous<T>(sorted, out int so);
+        var v = CContiguous<T>(values, out int vo);
+        var found = new int[values.Size];
+        Sorting.SearchSorted<T>(s.AsSpan(so, sorted.Size), v.AsSpan(vo, values.Size), found, right ? SearchSide.Right : SearchSide.Left);
+        var result = new long[found.Length];
+        for (int i = 0; i < result.Length; i++) result[i] = found[i];
+        CountCall();
+        return new NDArray(DType.Int64, result, (int[])values.Shape.Clone());
+    }
+
     // ------------------------------------------------------------------ covariance, correlation
 
     /// <summary>Tries the kernel for the covariance of the rows of the 2-D float64 array <paramref name="x"/> (one variable per row); the result is variables × variables.</summary>
