@@ -43,6 +43,12 @@ public static class KernelPath
         public void Dispose() => current.Value = previous;
     }
 
+    /// <summary>Whether the kernel path is on in the current execution context (it is, unless a scope switched it off).</summary>
+    internal static bool Active => current.Value is not { Enabled: false };
+
+    /// <summary>Counts one call answered by the kernels in the current scope (for the products, which do their own dispatch).</summary>
+    internal static void CountCall() => current.Value?.Count();
+
     internal enum Op { Sum, Prod, Max, Min, Mean, Var, CumSum, CumProd }
 
     /// <summary>Tries the kernels. <paramref name="a"/> is already cast to the dtype of the computation; <paramref name="axes"/> is the normalised,
@@ -284,6 +290,38 @@ public static class KernelPath
         var values = new T[q.Length * lane.Count];
         Statistics.Quantile<T>(src, lane, q, values, method, nan);
         return new NDArray(a.DType, values, new[] { q.Length }.Concat(outShape).ToArray());
+    }
+
+    // ------------------------------------------------------------------ covariance, correlation
+
+    /// <summary>Tries the kernel for the covariance of the rows of the 2-D float64 array <paramref name="x"/> (one variable per row); the result is variables × variables.</summary>
+    internal static bool TryCov(NDArray x, int ddof, out NDArray result)
+    {
+        result = null!;
+        if (!Active || x.DType != DType.Float64 || x.Ndim != 2) return false;
+        var buffer = CContiguous<double>(x, out int offset);
+        int v = x.Shape[0], n = x.Shape[1];
+        var cov = new double[v * v];
+        // numpy takes the means along the observations of the array it was given: pairwise only when they are adjacent there (not for the transpose of a C array)
+        var meanSum = n <= 1 || x.Strides[1] == 1 ? SumMethod.Pairwise : SumMethod.SequentialFromFirst;
+        Products.Covariance<double>(v * n == 0 ? default : buffer.AsSpan(offset, v * n), v, n, cov, ddof, meanSum);
+        CountCall();
+        result = new NDArray(DType.Float64, cov, new[] { v, v });
+        return true;
+    }
+
+    /// <summary>Tries the kernel for the correlation matrix from the square float64 covariance matrix <paramref name="cov"/>.</summary>
+    internal static bool TryCorrelation(NDArray cov, out NDArray result)
+    {
+        result = null!;
+        if (!Active || cov.DType != DType.Float64 || cov.Ndim != 2 || cov.Shape[0] != cov.Shape[1]) return false;
+        var buffer = CContiguous<double>(cov, out int offset);
+        int v = cov.Shape[0];
+        var corr = new double[v * v];
+        Products.Correlation<double>(v == 0 ? default : buffer.AsSpan(offset, v * v), v, corr);
+        CountCall();
+        result = new NDArray(DType.Float64, corr, new[] { v, v });
+        return true;
     }
 
     // ------------------------------------------------------------------ any, all, count_nonzero, argmax, argmin, diff

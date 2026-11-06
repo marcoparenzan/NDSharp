@@ -514,6 +514,7 @@ public static partial class np
             x = VStack(new[] { x, yy });
         }
         int n = x.Shape[1];
+        if (x.DType == DType.Float64 && KernelPath.TryCov(x, dd, out var fastCov)) return Squeeze(fastCov);
         double fact = n - dd;
         var avg = Mean(x, new[] { 1 });
         var xc = Subtract(x, ExpandDims(avg, 1));
@@ -528,6 +529,7 @@ public static partial class np
     {
         var c = Cov(x, y, rowvar);
         if (c.Ndim == 0) return Divide(c, c);
+        if (KernelPath.TryCorrelation(c, out var fastCorr)) return fastCorr;
         var d = Diagonal(c);
         var std = Sqrt(d);
         c = Divide(c, ExpandDims(std, 1));

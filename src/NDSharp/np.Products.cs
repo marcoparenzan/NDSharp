@@ -70,12 +70,20 @@ public static partial class np
         var w = new RowWalker(batch, sa, sb);
         int ob = 0;
         int mn = m * n;
+        bool kernel = KernelPath.Active;   // the general loop below stays as the oracle of the tests and runs when the kernel path is switched off
+        if (kernel) KernelPath.CountCall();
         do
         {
             for (int bi = 0; bi < w.InnerLen; bi++)
             {
                 int pa = a.Offset + w.Off0 + bi * w.InnerStride0;
                 int pb = b.Offset + w.Off1 + bi * w.InnerStride1;
+                if (kernel)
+                {
+                    MathemaSharp.Kernels.Products.MatMul<T>(Block(x, pa, ar, ac, m, k), Block(y, pb, br, bcs, k, n), o.AsSpan(ob, mn), m, k, n);
+                    ob += mn;
+                    continue;
+                }
                 for (int i = 0; i < m; i++)
                 {
                     int orow = ob + i * n;
@@ -92,6 +100,17 @@ public static partial class np
                 ob += mn;
             }
         } while (w.Next());
+    }
+
+    /// <summary>A rows × cols matrix of <paramref name="src"/> starting at <paramref name="start"/> with the given strides, contiguous and row-major: in place when it already is, copied otherwise.</summary>
+    private static ReadOnlySpan<T> Block<T>(T[] src, int start, int rowStride, int colStride, int rows, int cols)
+    {
+        if (rows * cols == 0) return default;
+        if ((cols == 1 || colStride == 1) && (rows == 1 || rowStride == cols)) return src.AsSpan(start, rows * cols);
+        var copy = new T[rows * cols];
+        for (int r = 0; r < rows; r++)
+            for (int c = 0; c < cols; c++) copy[r * cols + c] = src[start + r * rowStride + c * colStride];
+        return copy;
     }
 
     /// <summary>numpy <c>dot</c>: scalars multiply, 1-D/2-D operands use matmul. (N-D × N-D "sum over
